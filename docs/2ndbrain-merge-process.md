@@ -11,12 +11,51 @@ gegen den **Ist-Zustand** abzugleichen.
 
 - Dieses Dokument behandelt **ausschließlich den 2ndBrain-Merge**
   (Vault / Repo / NAS → kanonisches Soll → Soll-Ist-Abgleich).
-- Es ist **nicht** der **OS-v2.6-Merge**. Falls Schritte hier mit dem
-  OS-v2.6-Merge kollidieren, hat der OS-v2.6-Merge Vorrang und wird in einem
-  eigenen Dokument geführt. Querverweise bleiben getrennt.
+- Es ist **nicht** der **noerix-os-Merge (OS-v2.6)**. Falls Schritte hier mit
+  dem OS-v2.6-Merge kollidieren, hat der OS-v2.6-Merge Vorrang und wird in einem
+  eigenen Dokument geführt. Die beiden Merges bleiben getrennt – aber **dort, wo
+  sie sich berühren, wird die Berührung benannt und nicht still aufgelöst**
+  (siehe Abschnitt „Berührungspunkte zum noerix-os-Merge").
 - **Anlass:** Der aktuelle **Ssc-Vault auf dem Handy** weicht vom
   **Vier-Vault-Plan** ab. Diese Drift ist der Auslöser und gleichzeitig der
   erste konkrete Abgleichfall (siehe Phase 4).
+
+## Berührungspunkte zum noerix-os-Merge (OS-v2.6)
+
+Beide Merges bleiben eigenständig, teilen sich aber Substrat. Wo ein 2ndBrain-
+Schritt eine OS-v2.6-Entscheidung voraussetzt oder beeinflusst, wird das hier
+markiert, statt es im 2ndBrain-Merge eigenmächtig festzulegen.
+
+Regel für Berührungspunkte:
+
+```text
+1. Erkennen statt auflösen. Berührt ein Schritt den OS-v2.6-Merge, wird er
+   im Interface-Log (unten) eingetragen, nicht still entschieden.
+2. OS-v2.6 hat Vorrang. Steht eine OS-v2.6-Entscheidung noch aus, wartet der
+   abhängige 2ndBrain-Schritt oder nutzt einen klar markierten Platzhalter.
+3. Keine Doppelwahrheit. Gemeinsame Artefakte (Pfade, Namen, NAS-Shares,
+   Sync/Secrets) werden nur an einer Stelle kanonisch definiert; die andere
+   Sicht referenziert sie.
+```
+
+Wahrscheinliche Berührungspunkte (prüfen und im Log führen):
+
+| Bereich | Mögliche Berührung mit OS-v2.6 | Wer ist führend |
+|---------|--------------------------------|-----------------|
+| GitHub-Repo-Layout | 2ndBrain-Repo liegt in/neben der noerix-os-Repostruktur | i. d. R. OS-v2.6 |
+| NAS-Layout | gemeinsame Shares, Snapshot-/Backup-Mechanik, Pfadschema | i. d. R. OS-v2.6 |
+| Namenskonvention | gemeinsamer Slug-/Namensstandard über Systeme hinweg | gemeinsam, OS-v2.6 setzt Rahmen |
+| Geräte-/Sync-Topologie | welche Geräte (inkl. Handy/Ssc) wie synchronisieren | OS-v2.6 (Geräteebene) |
+| Sync/Secrets | geteilte Sync-Keys/Tokens (nur als Name/Ort dokumentiert) | OS-v2.6 |
+| Reihenfolge | OS-v2.6 verschiebt Pfade/Repos -> 2ndBrain-Merge muss nachziehen | OS-v2.6 (Timing) |
+
+Interface-Log (fortlaufend führen):
+
+```text
+Datum | Berührungspunkt | OS-v2.6-Status | 2ndBrain-Abhängigkeit | Auflösung
+------+-----------------+----------------+-----------------------+----------
+      |                 | offen/geklärt  |                       |
+```
 
 ## Grundregeln
 
@@ -68,6 +107,8 @@ Ziel: jede der drei Quellen unverändert erfassen. Nichts verschieben.
     ungefährer Umfang). Den Ssc-Vault am Handy ausdrücklich mit erfassen.
 [ ] GitHub: relevante Repos/Verzeichnisse auflisten (Name, Branch, Zweck).
 [ ] NAS: Share-/Ordner-Layout auflisten (Pfad, Zweck, Backup-Status).
+[ ] Berührungspunkte markieren: Quellen, die zugleich vom noerix-os-Merge
+    (OS-v2.6) angefasst werden, im Interface-Log eintragen.
 ```
 
 Inventur-Tabelle (pro Quelle ausfüllen):
@@ -112,7 +153,8 @@ auf Basis des Vier-Vault-Plans.
       - GitHub-Abbildung (Repo/Unterordner, ja/nein)
       - NAS-Ort (Share/Pfad, Backup-Strategie)
 [ ] Namenskonvention festlegen (ein stabiler Slug pro Vault über alle Sichten,
-    analog docs/naming.md).
+    analog docs/naming.md). Falls OS-v2.6 einen Namens-/Pfadrahmen vorgibt,
+    diesen übernehmen statt einen eigenen zu erfinden (Interface-Log).
 [ ] Mapping-Tabelle Soll erstellen.
 ```
 
@@ -172,6 +214,8 @@ Ziel: Ist gemäß den Entscheidungen aus Phase 4 in das Soll überführen.
 Erst nach erfolgreichem Backup (Phase 2).
 
 ```text
+[ ] Interface-Log prüfen: offene OS-v2.6-Berührungspunkte blockieren die
+    betroffenen Schritte, bis OS-v2.6 entschieden hat (OS-v2.6 hat Vorrang).
 [ ] Trockenlauf: Aktionen ohne Schreiben durchgehen, Reihenfolge prüfen.
 [ ] Eine Quelle als Leitsicht migrieren (Empfehlung: zuerst NAS als
     stabiler Speicher, dann GitHub, dann Obsidian-Geräte angleichen).
@@ -228,4 +272,6 @@ Ergebnis: ein dokumentiertes, gepflegtes 2ndBrain mit einer Quelle der Wahrheit.
 [ ] GitHub-Repo(s)/Unterordner des 2ndBrain.
 [ ] NAS-Share-/Ordnerstruktur des 2ndBrain.
 [ ] Konkrete Soll-Vorgabe für den Ssc-Vault am Handy.
+[ ] Stand des noerix-os-Merges (OS-v2.6) und welche Berührungspunkte daraus
+    bereits feststehen bzw. noch offen sind.
 ```
