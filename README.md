@@ -148,6 +148,8 @@ The orchestrator follows the Control Room. It should not become a giant agent wi
 
 Add recurring workflows, audits, backup checks, task routing, and optional direct gateway/API calls.
 
+Recurring workflows here are **loops**, not bare cron jobs: each one needs a goal, a verifier gate, a stop condition, a maker/checker split, and a cost guardrail. See `docs/loops.md`.
+
 Only add automation after the manual workflow works.
 
 ## Bundled Skills
@@ -178,7 +180,8 @@ agent-security-auditor
   Check ports, dashboards, SSH, Docker, secret placement, and key scope.
 
 agent-team-cron-planner
-  Plan recurring multi-agent workflows after manual workflows work.
+  Plan recurring multi-agent workflows (loops) after manual workflows work,
+  with a verifier gate, stop condition, maker/checker split, and cost guardrail.
 ```
 
 ## Suggested Folder Structure
@@ -195,6 +198,7 @@ agent-control-room/
     security.md
     task-bus.md
     orchestrator.md
+    loops.md
     starter-guide.md
   shared/
     api-keys-sop.md
@@ -214,6 +218,7 @@ agent-control-room/
       agents.yaml
       task-template.md
       result-template.md
+      loop-spec.md
   skills/
     create-vps/
     setup-control-room/
@@ -228,6 +233,7 @@ agent-control-room/
     level-2-direct-specialists/
     level-3-orchestrator-specialists/
     level-4-automated-team/
+      loops/
 ```
 
 ## Setup
