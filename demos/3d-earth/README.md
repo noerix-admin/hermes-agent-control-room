@@ -8,6 +8,7 @@ Koordinatensystems anschaulich und mit Beispielen erklärt:
 - **Nullmeridian** – Länge 0° durch Greenwich
 - **Breitengrad** – Parallelkreise zum Äquator (Beispiel: Berlin 52,5° N)
 - **Längengrad** – Linien von Pol zu Pol (Beispiel: Berlin 13,4° O)
+- **Wende- & Polarkreise** – ±23,5° und ±66,5° (Sonnenwende, Mitternachtssonne, Polarnacht)
 
 ## Bedienung
 
@@ -15,7 +16,10 @@ Koordinatensystems anschaulich und mit Beispielen erklärt:
 - **Zoomen:** Mausrad / Pinch-Geste
 - **Begriff wählen:** rechts im Panel anklicken – das Modell hebt die passenden
   Linien farbig hervor und blendet einen Erklärtext mit Beispiel ein
-- **Ansicht:** Auto-Rotation, Gradnetz ein/aus und Ansicht zurücksetzen
+- **Ansicht:** Auto-Rotation, Gradnetz ein/aus, Ansicht zurücksetzen
+- **Tag & Nacht:** zeigt die Sonne und die Tag-/Nacht-Grenze (Terminator) auf der Erde
+- **Städte:** blendet weitere Beispielstädte mit Koordinaten ein
+  (New York, Rio de Janeiro, Kapstadt, Nairobi, Tokio, Sydney)
 
 ## Starten
 
