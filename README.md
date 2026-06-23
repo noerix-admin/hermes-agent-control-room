@@ -199,6 +199,7 @@ agent-control-room/
     task-bus.md
     orchestrator.md
     loops.md
+    loop-library.md
     starter-guide.md
   shared/
     api-keys-sop.md

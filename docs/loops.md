@@ -141,3 +141,4 @@ while you sleep.
 - Write the spec from `templates/task-bus/loop-spec.md`.
 - Run it through the task bus (`docs/task-bus.md`) for the maker/checker split.
 - Worked examples: `examples/level-4-automated-team/loops/`.
+- Proven loop patterns mapped to agents: `docs/loop-library.md`.

@@ -25,6 +25,10 @@ Plan loops with the `agent-team-cron-planner` skill.
 
 - `loops/backup-verify.md` — nightly restore + checksum gate.
 - `loops/vps-health.md` — disk / ports / units gate every 30 minutes.
+- `loops/production-error-sweep.md` — root-cause fix + PR + green CI gate.
+- `loops/loop-auditor.md` — weekly meta-loop scoring the loop portfolio.
+
+For more proven patterns mapped to agents, see `docs/loop-library.md`.
 
 ### What Stays a Single Prompt
 
