@@ -120,13 +120,19 @@
   /* ---- Fixe Info-Karte nach Klick auf ein Highlight ---- */
   #featureinfo {
     position: fixed; left: 18px; bottom: 18px; z-index: 9; display: none;
-    width: 330px; max-width: calc(100vw - 400px);
+    width: 330px; max-width: calc(100vw - 400px); max-height: 70vh; overflow-y: auto;
     background: rgba(10,15,26,0.96); border: 1px solid var(--accent);
     border-radius: 12px; padding: 14px 16px; box-shadow: 0 8px 28px rgba(0,0,0,0.55);
-    pointer-events: none;
+    pointer-events: auto;
   }
   #featureinfo h4 { margin: 0 0 6px; font-size: 16px; color: var(--accent); padding-right: 22px; }
   #featureinfo p { margin: 0; font-size: 13px; line-height: 1.55; color: #dde6f2; }
+  #featureinfo .imgrow { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  #featureinfo .imgrow img {
+    width: 100%; border-radius: 8px; display: block; background: rgba(255,255,255,0.05);
+  }
+  #featureinfo .imgrow.two img { width: calc(50% - 3px); height: 96px; object-fit: cover; }
+  #featureinfo .credit { font-size: 10px; color: var(--muted); margin-top: 4px; }
   #featureinfo .close {
     position: absolute; top: 8px; right: 11px; cursor: pointer; pointer-events: auto;
     color: var(--muted); font-size: 16px; line-height: 1;
@@ -576,23 +582,28 @@ const markers = {
 Object.values(markers).flat().forEach(m => m.visible = false);
 
 // Eigenständige Beispielstädte (über Schaltfläche ein-/ausblendbar)
+// Ziel-Listen fürs Raycasting (früh deklariert, damit alle Gruppen sie nutzen können)
+const hoverTargets = [];   // unsichtbare Trefferkugeln für Mouseover
+const clickTargets = [];   // anklickbare Highlights
+
 const cityGroup = new THREE.Group();
 earthGroup.add(cityGroup);
 cityGroup.visible = false;
+// Beschriftungen + anklickbare Punkte werden weiter unten erzeugt (nach makeClickPoint)
 const CITIES = [
-  ['New York',    40.7,  -74.0, '40,7° N · 74,0° W'],
-  ['Rio de Janeiro', -22.9, -43.2, '22,9° S · 43,2° W'],
-  ['Kapstadt',   -33.9,   18.4, '33,9° S · 18,4° O'],
-  ['Nairobi',     -1.3,   36.8, '1,3° S · 36,8° O'],
-  ['Tokio',       35.7,  139.7, '35,7° N · 139,7° O'],
-  ['Sydney',     -33.9,  151.2, '33,9° S · 151,2° O'],
+  { key:'newyork', name:'New York',       lat:40.7,  lng:-74.0, wiki:'New York City',
+    info:'Größte Stadt der USA. Bekannt für die Freiheitsstatue und die Wolkenkratzer von Manhattan.' },
+  { key:'rio',     name:'Rio de Janeiro', lat:-22.9, lng:-43.2, wiki:'Rio de Janeiro',
+    info:'Berühmt für lange Sandstrände, den Zuckerhut und die große Christusstatue auf dem Berg.' },
+  { key:'kapstadt',name:'Kapstadt',       lat:-33.9, lng:18.4,  wiki:'Kapstadt',
+    info:'Liegt am Fuß des Tafelbergs in Südafrika, nahe der Stelle, wo Atlantik und Indischer Ozean aufeinandertreffen.' },
+  { key:'nairobi', name:'Nairobi',        lat:-1.3,  lng:36.8,  wiki:'Nairobi',
+    info:'Hauptstadt von Kenia, fast genau am Äquator. In der Nähe gibt es berühmte Tier-Nationalparks.' },
+  { key:'tokio',   name:'Tokio',          lat:35.7,  lng:139.7, wiki:'Tokio',
+    info:'Hauptstadt von Japan und eine der größten Städte der Welt – hier leben viele Millionen Menschen.' },
+  { key:'sydney',  name:'Sydney',         lat:-33.9, lng:151.2, wiki:'Sydney',
+    info:'Größte Stadt Australiens, weltbekannt für das Opernhaus direkt am Hafen.' },
 ];
-CITIES.forEach(([name, lat, lng, sub]) => {
-  const m = makeMarker(lat, lng, name, '#ffffff', sub);
-  earthGroup.remove(m);   // aus der Standard-Gruppe lösen ...
-  cityGroup.add(m);       // ... und der Städte-Gruppe zuordnen
-  m.visible = true;
-});
 
 // ---------------------------------------------------------------------------
 // Kontinente – Namens-Beschriftungen (über Schaltfläche)
@@ -602,23 +613,25 @@ earthGroup.add(continentGroup);
 continentGroup.visible = false;
 const continentTargets = [];   // Hover-Ziele für die Steckbriefe
 // [Name, Breite, Länge, Steckbrief (5. Klasse)]
+// [Name, Breite, Länge, Steckbrief, Geo-Name (für Grenzen), Wiki-Titel]
 const CONTINENTS = [
-  ['Nordamerika', 48, -100, 'Fläche: ~24,7 Mio. km² · ~600 Mio. Menschen.<br>Bekannt: Rocky Mountains, Grand Canyon, längster Fluss Mississippi. Länder u. a. USA & Kanada.'],
-  ['Südamerika', -15, -60, 'Fläche: ~17,8 Mio. km² · ~430 Mio. Menschen.<br>Bekannt: Amazonas-Regenwald, Fluss Amazonas, Gebirge Anden.'],
-  ['Europa', 50, 12, 'Fläche: ~10,2 Mio. km² · ~745 Mio. Menschen.<br>Viele Länder auf wenig Raum. Bekannt: Alpen, Flüsse Rhein & Donau.'],
-  ['Afrika', 4, 21, 'Fläche: ~30,3 Mio. km² · ~1,4 Mrd. Menschen.<br>Bekannt: Wüste Sahara, Fluss Nil, große Savannen mit vielen Tieren.'],
-  ['Asien', 46, 95, 'Fläche: ~44,6 Mio. km² · ~4,7 Mrd. Menschen.<br>Größter Kontinent, die meisten Menschen. Bekannt: Himalaya mit dem Mount Everest.'],
-  ['Australien', -25, 134, 'Fläche: ~8,6 Mio. km² · ~45 Mio. Menschen.<br>Kleinster Kontinent. Bekannt: trockenes Outback, Great Barrier Reef, Kängurus.'],
-  ['Antarktis', -84, 0, 'Fläche: ~14 Mio. km² · keine Einwohner (nur Forscher).<br>Fast komplett von dickem Eis bedeckt – die kälteste Region der Erde.'],
+  ['Nordamerika', 48, -100, 'Fläche: ~24,7 Mio. km² · ~600 Mio. Menschen.<br>Bekannt: Rocky Mountains, Grand Canyon, längster Fluss Mississippi. Länder u. a. USA & Kanada.', 'North America', 'Nordamerika'],
+  ['Südamerika', -15, -60, 'Fläche: ~17,8 Mio. km² · ~430 Mio. Menschen.<br>Bekannt: Amazonas-Regenwald, Fluss Amazonas, Gebirge Anden.', 'South America', 'Südamerika'],
+  ['Europa', 50, 12, 'Fläche: ~10,2 Mio. km² · ~745 Mio. Menschen.<br>Viele Länder auf wenig Raum. Bekannt: Alpen, Flüsse Rhein & Donau.', 'Europe', 'Europa'],
+  ['Afrika', 4, 21, 'Fläche: ~30,3 Mio. km² · ~1,4 Mrd. Menschen.<br>Bekannt: Wüste Sahara, Fluss Nil, große Savannen mit vielen Tieren.', 'Africa', 'Afrika'],
+  ['Asien', 46, 95, 'Fläche: ~44,6 Mio. km² · ~4,7 Mrd. Menschen.<br>Größter Kontinent, die meisten Menschen. Bekannt: Himalaya mit dem Mount Everest.', 'Asia', 'Asien'],
+  ['Australien', -25, 134, 'Fläche: ~8,6 Mio. km² · ~45 Mio. Menschen.<br>Kleinster Kontinent. Bekannt: trockenes Outback, Great Barrier Reef, Kängurus.', 'Oceania', 'Australien (Kontinent)'],
+  ['Antarktis', -84, 0, 'Fläche: ~14 Mio. km² · keine Einwohner (nur Forscher).<br>Fast komplett von dickem Eis bedeckt – die kälteste Region der Erde.', 'Antarctica', 'Antarktika'],
 ];
-CONTINENTS.forEach(([name, lat, lng, data]) => {
+CONTINENTS.forEach(([name, lat, lng, data, geo, wiki]) => {
   const label = makeLabel(name, '#ffe9b0');
   label.position.copy(geoToVec(lat, lng, R * 1.16));
   label.scale.multiplyScalar(0.82);
-  label.userData = { name, color: '#ffe9b0',
-    html: `<h4 style="color:#ffe9b0">${name}</h4><p>${data}</p>` };
+  label.userData = { kind: 'continent', key: name, name, color: '#ffe9b0', geo, wiki, info: data,
+    html: `<h4 style="color:#ffe9b0">${name}</h4><p>${data}</p><p style="color:#9fb0c8;font-size:11px;margin-top:6px">👆 Klicken: Umriss zeichnen</p>` };
   continentGroup.add(label);
   continentTargets.push(label);
+  clickTargets.push(label);
 });
 
 // kleine, wiederverwendbare Glüh-Textur für Punkte
@@ -638,7 +651,6 @@ const glowTex = (() => {
 // ---------------------------------------------------------------------------
 const poiGroup = new THREE.Group();
 earthGroup.add(poiGroup);
-const hoverTargets = [];   // unsichtbare Trefferkugeln fürs Raycasting
 
 function makeInfoPoint(lat, lng, name, info, color = '#ffd24a', group = poiGroup) {
   const pos = geoToVec(lat, lng, R * 1.006);
@@ -698,7 +710,6 @@ makePole(-90, 'Südpol',  'Südlichster Punkt der Erde (90° S). Liegt auf dem K
 const featureGroup = new THREE.Group();   earthGroup.add(featureGroup);
 const countryGroup = new THREE.Group();   earthGroup.add(countryGroup);
 const highlightGroup = new THREE.Group(); earthGroup.add(highlightGroup);
-const clickTargets = [];
 
 // Linienpunkte entlang von Geo-Koordinaten (für Fluss/Gebirge)
 function geoLine(coords, radius) {
@@ -716,33 +727,33 @@ function geoLine(coords, radius) {
 // Geländemerkmale (Fluss, Gebirge, Gipfel)
 const FEATURES = {
   nil: {
-    name: 'Nil', color: '#46c8ff', type: 'line', marker: [19, 32.9],
+    name: 'Nil', color: '#46c8ff', type: 'line', marker: [19, 32.9], wiki: 'Nil',
     path: [[-1,33],[3.5,31.8],[9.6,31.6],[12.2,32.7],[15.6,32.5],[18.5,31.8],[22,32.4],[24,32.9],[27,31.2],[29,31],[30,31.2],[31.5,30.4]],
     info: 'Der Nil ist rund 6.650 km lang und einer der längsten Flüsse der Erde. Er fließt in Afrika von Süden nach Norden und mündet ins Mittelmeer. Schon vor über 5.000 Jahren lebten an seinen Ufern die alten Ägypter.'
   },
   himalaya: {
-    name: 'Himalaya', color: '#ff9d3a', type: 'line', marker: [28.3, 85],
+    name: 'Himalaya', color: '#ff9d3a', type: 'line', marker: [28.3, 85], wiki: 'Himalaya',
     path: [[35.2,74],[33,76.5],[31,79],[29.5,82],[28.3,85],[27.9,87.5],[27.5,90],[27.8,93],[28.2,95.5]],
     info: 'Der Himalaya ist das höchste Gebirge der Erde. Hier stehen alle 14 Berge, die über 8.000 m hoch sind. Das Gebirge entstand, weil zwei Erdplatten zusammenstoßen – und es wächst noch heute langsam weiter.'
   },
   everest: {
-    name: 'Mount Everest', color: '#ffffff', type: 'peak', marker: [27.99, 86.93],
+    name: 'Mount Everest', color: '#ffffff', type: 'peak', marker: [27.99, 86.93], wiki: 'Mount Everest',
     info: 'Der Mount Everest ist mit 8.849 m der höchste Berg der Erde. Er liegt im Himalaya an der Grenze zwischen Nepal und Tibet (China). 1953 standen die ersten Menschen auf seinem Gipfel.'
   },
 };
 
 // Länder + ihr wichtigstes geografisches Highlight (5. Klasse)
 const COUNTRIES = {
-  deutschland: { name: 'Deutschland', marker: [51, 10.2], info: 'Höchster Berg: Zugspitze (2.962 m). Längster Fluss: der Rhein. Deutschland grenzt an 9 Nachbarländer – mehr als die meisten Länder Europas.' },
-  aegypten:    { name: 'Ägypten',     marker: [26.8, 30.8], info: 'Mitten durch das Land fließt der Nil. Fast überall sonst ist Wüste (Sahara). Weltbekannt sind die Pyramiden von Gizeh.' },
-  usa:         { name: 'USA',         marker: [39, -98], info: 'Drittgrößtes Land der Erde. Bekannt: der Grand Canyon, die Rocky Mountains und der lange Fluss Mississippi.' },
-  brasilien:   { name: 'Brasilien',   marker: [-10, -52], info: 'Hier liegt der größte Teil des Amazonas-Regenwaldes. Durch ihn fließt der Amazonas – der wasserreichste Fluss der Erde.' },
-  china:       { name: 'China',       marker: [35, 103], info: 'An Chinas Grenze steht der höchste Berg der Erde (Mount Everest). Lange Flüsse: Jangtsekiang und Gelber Fluss.' },
-  russland:    { name: 'Russland',    marker: [61, 100], info: 'Das größte Land der Erde – es liegt in Europa UND Asien. Hier ist auch der Baikalsee, der tiefste See der Welt.' },
-  australien:  { name: 'Australien',  marker: [-25, 134], info: 'Ein Land, das einen ganzen Kontinent bildet. Innen das trockene Outback, vor der Küste das Great Barrier Reef.' },
-  indien:      { name: 'Indien',      marker: [22, 79], info: 'Im Norden das Hochgebirge Himalaya, im Süden tropisch warm. Der Fluss Ganges gilt vielen Menschen als heilig.' },
-  japan:       { name: 'Japan',       marker: [37, 138], info: 'Ein Inselstaat mit vielen Vulkanen und Erdbeben. Der höchste Berg ist der Vulkan Fuji (Fujiyama).' },
-  norwegen:    { name: 'Norwegen',    marker: [62, 9], info: 'Bekannt für die Fjorde – tiefe, schmale Meeresarme zwischen Bergen. Im Norden scheint im Sommer die Mitternachtssonne.' },
+  deutschland: { name: 'Deutschland', marker: [51, 10.2], geo: 'Germany', wiki: 'Deutschland', info: 'Höchster Berg: Zugspitze (2.962 m). Längster Fluss: der Rhein. Deutschland grenzt an 9 Nachbarländer – mehr als die meisten Länder Europas.' },
+  aegypten:    { name: 'Ägypten',     marker: [26.8, 30.8], geo: 'Egypt', wiki: 'Ägypten', info: 'Mitten durch das Land fließt der Nil. Fast überall sonst ist Wüste (Sahara). Weltbekannt sind die Pyramiden von Gizeh.' },
+  usa:         { name: 'USA',         marker: [39, -98], geo: 'United States of America', wiki: 'Vereinigte Staaten', info: 'Drittgrößtes Land der Erde. Bekannt: der Grand Canyon, die Rocky Mountains und der lange Fluss Mississippi.' },
+  brasilien:   { name: 'Brasilien',   marker: [-10, -52], geo: 'Brazil', wiki: 'Brasilien', info: 'Hier liegt der größte Teil des Amazonas-Regenwaldes. Durch ihn fließt der Amazonas – der wasserreichste Fluss der Erde.' },
+  china:       { name: 'China',       marker: [35, 103], geo: 'China', wiki: 'China', info: 'An Chinas Grenze steht der höchste Berg der Erde (Mount Everest). Lange Flüsse: Jangtsekiang und Gelber Fluss.' },
+  russland:    { name: 'Russland',    marker: [61, 100], geo: 'Russia', wiki: 'Russland', info: 'Das größte Land der Erde – es liegt in Europa UND Asien. Hier ist auch der Baikalsee, der tiefste See der Welt.' },
+  australien:  { name: 'Australien',  marker: [-25, 134], geo: 'Australia', wiki: 'Australien', info: 'Ein Land, das einen ganzen Kontinent bildet. Innen das trockene Outback, vor der Küste das Great Barrier Reef.' },
+  indien:      { name: 'Indien',      marker: [22, 79], geo: 'India', wiki: 'Indien', info: 'Im Norden das Hochgebirge Himalaya, im Süden tropisch warm. Der Fluss Ganges gilt vielen Menschen als heilig.' },
+  japan:       { name: 'Japan',       marker: [37, 138], geo: 'Japan', wiki: 'Japan', info: 'Ein Inselstaat mit vielen Vulkanen und Erdbeben. Der höchste Berg ist der Vulkan Fuji (Fujiyama).' },
+  norwegen:    { name: 'Norwegen',    marker: [62, 9], geo: 'Norway', wiki: 'Norwegen', info: 'Bekannt für die Fjorde – tiefe, schmale Meeresarme zwischen Bergen. Im Norden scheint im Sommer die Mitternachtssonne.' },
 };
 
 // kleine Glüh-/Klick-Punkte erzeugen
@@ -765,7 +776,42 @@ Object.entries(COUNTRIES).forEach(([key, c]) =>
   makeClickPoint(countryGroup, key, 'country', c.name, '#7CFC8A', c.marker[0], c.marker[1], 0.03));
 countryGroup.visible = false;
 
-// Highlight zeichnen + Info-Karte zeigen
+// Städte: Beschriftung + anklickbarer Punkt
+CITIES.forEach(c => {
+  const label = makeLabel(c.name, '#ffffff');
+  label.position.copy(geoToVec(c.lat, c.lng, R * 1.22));
+  label.scale.multiplyScalar(0.8);
+  cityGroup.add(label);
+  makeClickPoint(cityGroup, c.key, 'city', c.name, '#ffffff', c.lat, c.lng, 0.028);
+});
+
+// ---------------------------------------------------------------------------
+// Echte Ländergrenzen (Geodaten vom CDN) – damit Länder/Kontinente beim Klick
+// mit ihrem tatsächlichen Umriss „nachgezeichnet“ werden. Offline: nur Punkte.
+// ---------------------------------------------------------------------------
+let geoFeatures = [];   // { admin, continent, rings:[ [ [lng,lat], ... ], ... ] }
+function ringsOf(geom) {
+  const out = [];
+  if (geom.type === 'Polygon') geom.coordinates.forEach(r => out.push(r));
+  else if (geom.type === 'MultiPolygon') geom.coordinates.forEach(p => p.forEach(r => out.push(r)));
+  return out;
+}
+function ringLine(ring, material, radius) {
+  const pts = ring.map(([lng, lat]) => geoToVec(lat, lng, radius));
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), material);
+}
+fetch('https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_110m_admin_0_countries.geojson')
+  .then(r => r.json())
+  .then(gj => {
+    gj.features.forEach(f => geoFeatures.push({
+      admin: f.properties.ADMIN, continent: f.properties.CONTINENT, rings: ringsOf(f.geometry)
+    }));
+  })
+  .catch(() => { /* offline: keine Grenzen, Klick zeigt dann nur Ring + Info */ });
+
+// ---------------------------------------------------------------------------
+// Highlight zeichnen + Info-Karte (mit Foto) zeigen
+// ---------------------------------------------------------------------------
 let pulseRing = null;
 function clearHighlight() {
   while (highlightGroup.children.length) {
@@ -776,30 +822,73 @@ function clearHighlight() {
   pulseRing = null;
 }
 function radialQuat(pos) {                       // Ausrichtung tangential zur Kugel
-  const up = pos.clone().normalize();
-  return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), up);
+  return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), pos.clone().normalize());
 }
-function showInfo(name, color, info) {
+
+// Foto von der deutschen Wikipedia laden (REST-API mit CORS)
+let imgAbort = null, imgToken = 0;
+function loadWikiImage(holder, title) {
+  if (!title) { holder.innerHTML = ''; return; }
+  const myToken = ++imgToken;
+  if (imgAbort) imgAbort.abort();
+  imgAbort = new AbortController();
+  holder.innerHTML = '<div class="credit">Lade Bild …</div>';
+  fetch('https://de.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title), { signal: imgAbort.signal })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if (myToken !== imgToken) return;            // veraltete Antwort verwerfen
+      const src = d && ((d.originalimage && d.originalimage.source) || (d.thumbnail && d.thumbnail.source));
+      holder.innerHTML = src
+        ? `<img src="${src}" alt="${title}" loading="lazy"><div class="credit">Foto: Wikipedia – ${title}</div>`
+        : '';
+    })
+    .catch(() => { if (myToken === imgToken) holder.innerHTML = ''; });
+}
+
+function showInfo(name, color, info, wiki) {
   const fi = document.getElementById('featureinfo');
-  fi.style.display = 'block'; fi.style.borderColor = color;
-  fi.innerHTML = `<span class="close">✕</span><h4 style="color:${color}">${name}</h4><p>${info}</p>`;
+  fi.style.display = 'block'; fi.style.borderColor = color; fi.scrollTop = 0;
+  fi.innerHTML =
+    `<span class="close">✕</span>` +
+    `<h4 style="color:${color}">${name}</h4><p>${info}</p><div class="imgrow"></div>`;
   fi.querySelector('.close').onclick = () => { fi.style.display = 'none'; clearHighlight(); };
+  loadWikiImage(fi.querySelector('.imgrow'), wiki);
 }
+
+// Umrisse aus echten Grenzdaten zeichnen
+function outlineByAdmin(admin, color) {
+  const f = geoFeatures.find(g => g.admin === admin);
+  if (!f) return false;
+  const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95 });
+  f.rings.forEach(r => highlightGroup.add(ringLine(r, mat, R * 1.006)));
+  return true;
+}
+function outlineContinent(geoName, color) {
+  const list = geoFeatures.filter(g => g.continent === geoName);
+  if (!list.length) return false;
+  const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 });
+  list.forEach(f => f.rings.forEach(r => highlightGroup.add(ringLine(r, mat, R * 1.005))));
+  return true;
+}
+function ringMarker(lat, lng, color, rOut) {
+  const pos = geoToVec(lat, lng, R * 1.006);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(rOut * 0.7, rOut, 40),
+    new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
+  ring.position.copy(pos); ring.quaternion.copy(radialQuat(pos));
+  highlightGroup.add(ring); pulseRing = ring;
+}
+
 function showFeature(key) {
   const f = FEATURES[key]; clearHighlight();
   if (f.type === 'line') {
     const pts = geoLine(f.path, R * 1.013);
-    const curve = new THREE.CatmullRomCurve3(pts);
     const tube = new THREE.Mesh(
-      new THREE.TubeGeometry(curve, pts.length * 2, 0.018, 8, false),
+      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 2, 0.018, 8, false),
       new THREE.MeshBasicMaterial({ color: f.color, transparent: true, opacity: 0.85 }));
     highlightGroup.add(tube);
   } else if (f.type === 'peak') {
     const pos = geoToVec(f.marker[0], f.marker[1], R * 1.006);
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.07, 0.1, 40),
-      new THREE.MeshBasicMaterial({ color: f.color, side: THREE.DoubleSide, transparent: true, opacity: 0.95 }));
-    ring.position.copy(pos); ring.quaternion.copy(radialQuat(pos));
-    highlightGroup.add(ring); pulseRing = ring;
+    ringMarker(f.marker[0], f.marker[1], f.color, 0.1);
     const up = pos.clone().normalize();
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.55, 8),
       new THREE.MeshBasicMaterial({ color: f.color, transparent: true, opacity: 0.6 }));
@@ -807,18 +896,34 @@ function showFeature(key) {
     beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
     highlightGroup.add(beam);
   }
-  showInfo(f.name, f.color, f.info);
+  showInfo(f.name, f.color, f.info, f.wiki);
 }
 function showCountry(key) {
   const c = COUNTRIES[key]; clearHighlight();
-  const pos = geoToVec(c.marker[0], c.marker[1], R * 1.006);
-  const ring = new THREE.Mesh(new THREE.RingGeometry(0.09, 0.13, 40),
-    new THREE.MeshBasicMaterial({ color: 0x7CFC8A, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
-  ring.position.copy(pos); ring.quaternion.copy(radialQuat(pos));
-  highlightGroup.add(ring); pulseRing = ring;
-  showInfo(c.name, '#7CFC8A', c.info);
+  if (!outlineByAdmin(c.geo, 0x7CFC8A)) ringMarker(c.marker[0], c.marker[1], 0x7CFC8A, 0.12);
+  showInfo(c.name, '#7CFC8A', c.info, c.wiki);
 }
-function activate(kind, key) { (kind === 'country' ? showCountry : showFeature)(key); }
+function showContinent(key) {
+  const c = CONTINENTS.find(x => x[0] === key); if (!c) return;
+  clearHighlight();
+  if (!outlineContinent(c[4], 0xffe9b0)) ringMarker(c[1], c[2], 0xffe9b0, 0.3);
+  showInfo(c[0], '#ffe9b0', c[3], c[5]);
+}
+function showCity(key) {
+  const c = CITIES.find(x => x.key === key); if (!c) return;
+  clearHighlight();
+  ringMarker(c.lat, c.lng, 0x9fd8ff, 0.06);
+  const mat = new THREE.LineBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.7 });
+  highlightGroup.add(ringLine(Array.from({ length: 41 }, (_, i) => [c.lng - 10 + i * 0.5, c.lat]), mat, R * 1.004));
+  highlightGroup.add(ringLine(Array.from({ length: 41 }, (_, i) => [c.lng, c.lat - 10 + i * 0.5]), mat, R * 1.004));
+  showInfo(c.name, '#9fd8ff', c.info, c.wiki);
+}
+function activate(kind, key) {
+  if (kind === 'country') showCountry(key);
+  else if (kind === 'continent') showContinent(key);
+  else if (kind === 'city') showCity(key);
+  else showFeature(key);
+}
 
 // ---------------------------------------------------------------------------
 // Themen-Definitionen

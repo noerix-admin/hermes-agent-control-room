@@ -15,9 +15,15 @@ Dazu (Niveau 5. Klasse Realschule Geografie):
 - **Authentische Erde** mit echter Satellitentextur, glänzenden Ozeanen und Wolken
 - **Pole** mit Kurzinfo, **Kontinente** mit Steckbrief beim Mouseover
 - **Live-Koordinaten** am Mauszeiger (Breite/Länge)
-- **Orte zum Anklicken**: Nil, Himalaya, Mount Everest werden auf der Erde
-  hervorgehoben und erklärt; **Länder** mit ihren wichtigsten geografischen Highlights
+- **Anklicken zeichnet das Objekt nach**: Länder & Kontinente mit ihrem echten
+  Umriss (Geodaten vom CDN), Nil/Himalaya als Linie, Mount Everest als Gipfel,
+  Städte als Fadenkreuz – jeweils mit Info und **echtem Foto** (Wikipedia)
+- **Länder** mit ihren wichtigsten geografischen Highlights
 - **Mystische Hintergrundmusik** (prozedural per Web Audio, ohne Audiodatei)
+
+> Hinweis: Umrisse (Ländergrenzen) und Fotos werden online nachgeladen
+> (jsDelivr bzw. Wikipedia). Ohne Internet erscheinen stattdessen ein Markierungsring
+> und kein Foto – der Rest funktioniert offline.
 
 ## Bedienung
 
