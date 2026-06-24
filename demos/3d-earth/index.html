@@ -93,6 +93,29 @@
     position: fixed; inset: 0; display:flex; align-items:center; justify-content:center;
     background: var(--bg); z-index: 20; color: var(--muted); font-size: 14px;
   }
+
+  /* ---- Cursor-Koordinaten (folgt der Maus) ---- */
+  #coordbox {
+    position: fixed; pointer-events: none; z-index: 7; display: none;
+    transform: translate(14px, 14px);
+    background: rgba(8,12,22,0.88); border: 1px solid var(--panel-border);
+    border-radius: 8px; padding: 6px 9px; font-size: 12px; line-height: 1.35;
+    white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+  }
+  #coordbox b { color: var(--lat); }
+  #coordbox .lng { color: var(--lng); }
+
+  /* ---- Orts-Info-Karte (Mouseover auf Punkt) ---- */
+  #poicard {
+    position: fixed; pointer-events: none; z-index: 9; display: none;
+    transform: translate(-50%, calc(-100% - 16px));
+    max-width: 230px; background: rgba(10,15,26,0.95);
+    border: 1px solid var(--accent); border-radius: 10px; padding: 10px 12px;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.5);
+  }
+  #poicard h4 { margin: 0 0 4px; font-size: 14px; color: var(--accent); }
+  #poicard .coord { font-size: 11px; color: var(--muted); margin: 0 0 5px; }
+  #poicard p { margin: 0; font-size: 12px; line-height: 1.45; color: #dde6f2; }
 </style>
 </head>
 <body>
@@ -100,7 +123,7 @@
 
 <div id="title">
   <h1>🌍 Interaktives 3D-Erdmodell</h1>
-  <p>Ziehen zum Drehen · Scrollen zum Zoomen · Begriff anklicken</p>
+  <p>Ziehen zum Drehen · Scrollen zum Zoomen · Maus über die Erde = Koordinaten · Punkte = Infos</p>
 </div>
 
 <div id="panel">
@@ -125,7 +148,10 @@
       <button id="btn-rotate" class="on">⏸︎ Auto-Rotation</button>
       <button id="btn-grid" class="on">Gradnetz</button>
       <button id="btn-daynight">☀️ Tag &amp; Nacht</button>
+      <button id="btn-clouds" class="on">☁️ Wolken</button>
+      <button id="btn-continents">🗺️ Kontinente</button>
       <button id="btn-cities">📍 Städte</button>
+      <button id="btn-poi" class="on">📌 Orte</button>
       <button id="btn-reset">↺ Ansicht</button>
     </div>
   </div>
@@ -144,6 +170,11 @@
 </div>
 
 <div id="loader">Lade 3D-Erde …</div>
+
+<!-- folgt der Maus: Längen-/Breitengrad an der Erdoberfläche -->
+<div id="coordbox"></div>
+<!-- Info-Karte beim Mouseover auf einen Ort -->
+<div id="poicard"></div>
 
 <script type="importmap">
 {
@@ -320,13 +351,39 @@ const earth = new THREE.Mesh(
 );
 earthGroup.add(earth);
 
-// Versuche, eine echte Satelliten-Textur nachzuladen (mit Fallback oben)
-new THREE.TextureLoader().load(
-  'https://cdn.jsdelivr.net/npm/three-globe@2.31.0/example/img/earth-blue-marble.jpg',
-  (tex) => { tex.colorSpace = THREE.SRGBColorSpace; earth.material.map = tex; earth.material.needsUpdate = true; },
-  undefined,
-  () => { /* offline: stilisierte Textur bleibt */ }
+// Authentische Erdoberfläche: echte Satellitentexturen nachladen (CDN).
+// Schlägt das fehl (offline), bleibt die stilisierte Canvas-Textur erhalten.
+const texLoader = new THREE.TextureLoader();
+const CDN = 'https://cdn.jsdelivr.net/npm/three-globe@2.31.0/example/img/';
+texLoader.load(CDN + 'earth-blue-marble.jpg',
+  (t) => { t.colorSpace = THREE.SRGBColorSpace; earth.material.map = t; earth.material.needsUpdate = true; });
+texLoader.load(CDN + 'earth-water.png',   // Ozeane glänzen, Land bleibt matt
+  (t) => { earth.material.specularMap = t; earth.material.specular = new THREE.Color(0x6f8fb5); earth.material.shininess = 24; earth.material.needsUpdate = true; });
+texLoader.load(CDN + 'earth-topology.png', // leichtes Relief (Gebirge)
+  (t) => { earth.material.bumpMap = t; earth.material.bumpScale = 0.04; earth.material.needsUpdate = true; });
+
+// Wolkenschicht (prozedural erzeugt, daher offline-tauglich) – rotiert langsam
+const cloudTex = (() => {
+  const W = 2048, H = 1024;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const ctx = c.getContext('2d'); ctx.clearRect(0, 0, W, H);
+  for (let i = 0; i < 380; i++) {
+    const x = Math.random() * W, y = Math.random() * H;
+    const r = 18 + Math.random() * 90;
+    const lat = 90 - (y / H) * 180;                      // weniger Wolken an den Polen
+    const a = (0.10 + Math.random() * 0.22) * (0.45 + 0.55 * Math.cos(lat * DEG * 1.5));
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(255,255,255,${a})`);
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const clouds = new THREE.Mesh(
+  new THREE.SphereGeometry(R * 1.012, 64, 64),
+  new THREE.MeshPhongMaterial({ map: cloudTex, transparent: true, opacity: 0.5, depthWrite: false })
 );
+earthGroup.add(clouds);
 
 // Atmosphäre (Halo)
 const atmosphere = new THREE.Mesh(
@@ -509,6 +566,93 @@ CITIES.forEach(([name, lat, lng, sub]) => {
 });
 
 // ---------------------------------------------------------------------------
+// Kontinente – Namens-Beschriftungen (über Schaltfläche)
+// ---------------------------------------------------------------------------
+const continentGroup = new THREE.Group();
+earthGroup.add(continentGroup);
+continentGroup.visible = false;
+const CONTINENTS = [
+  ['Nordamerika', 48, -100], ['Südamerika', -15, -60], ['Europa', 50, 12],
+  ['Afrika', 4, 21], ['Asien', 46, 95], ['Australien', -25, 134], ['Antarktis', -84, 0],
+];
+CONTINENTS.forEach(([name, lat, lng]) => {
+  const label = makeLabel(name, '#ffe9b0');
+  label.position.copy(geoToVec(lat, lng, R * 1.16));
+  label.scale.multiplyScalar(0.82);
+  continentGroup.add(label);
+});
+
+// kleine, wiederverwendbare Glüh-Textur für Punkte
+const glowTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.4, 'rgba(255,255,255,0.5)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+})();
+
+// ---------------------------------------------------------------------------
+// Interaktive Orte: kleine Punkte, die beim Mouseover eine Info-Karte zeigen
+// ---------------------------------------------------------------------------
+const poiGroup = new THREE.Group();
+earthGroup.add(poiGroup);
+const hoverTargets = [];   // unsichtbare Trefferkugeln fürs Raycasting
+
+function makeInfoPoint(lat, lng, name, info, color = '#ffd24a', group = poiGroup) {
+  const pos = geoToVec(lat, lng, R * 1.006);
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.028, 16, 16),
+    new THREE.MeshBasicMaterial({ color }));
+  dot.position.copy(pos); group.add(dot);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, opacity: 0.55, depthWrite: false }));
+  halo.position.copy(pos); halo.scale.set(0.16, 0.16, 1); group.add(halo);
+  // größere unsichtbare Trefferkugel für komfortables Überfahren
+  const hit = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8),
+    new THREE.MeshBasicMaterial({ visible: false }));
+  hit.position.copy(pos);
+  hit.userData = { name, info, lat, lng, color, dot, baseScale: dot.scale.x };
+  group.add(hit); hoverTargets.push(hit);
+  return hit;
+}
+
+const POIS = [
+  ['Mount Everest', 27.99, 86.93, 'Höchster Berg der Erde – 8.849 m über dem Meeresspiegel.'],
+  ['Amazonas-Regenwald', -3.0, -60.0, 'Größter Regenwald der Erde, „grüne Lunge“ des Planeten.'],
+  ['Sahara', 23.0, 13.0, 'Größte Trockenwüste der Erde – fast so groß wie die USA.'],
+  ['Great Barrier Reef', -18.3, 147.7, 'Größtes Korallenriff – sogar aus dem Weltall sichtbar.'],
+  ['Marianengraben', 11.35, 142.2, 'Tiefste Stelle aller Ozeane: rund 11.000 m.'],
+  ['Nil', 19.0, 32.9, 'Einer der längsten Flüsse der Erde (~6.650 km).'],
+  ['Grönländischer Eisschild', 72.0, -40.0, 'Zweitgrößte Eismasse nach der Antarktis.'],
+  ['Himalaya', 28.5, 84.0, 'Höchstes Gebirge der Erde, an der Grenze zu Tibet.'],
+];
+POIS.forEach(p => makeInfoPoint(p[1], p[2], p[0], p[3], '#ffd24a'));
+
+// ---------------------------------------------------------------------------
+// Pole – dauerhaft sichtbar, mit Kurzinfo beim Mouseover
+// ---------------------------------------------------------------------------
+const polesGroup = new THREE.Group();
+earthGroup.add(polesGroup);
+function makePole(lat, name, info, color) {
+  const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.5, 8),
+    new THREE.MeshBasicMaterial({ color }));
+  pin.position.copy(geoToVec(lat, 0, R + 0.25)); polesGroup.add(pin);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16),
+    new THREE.MeshBasicMaterial({ color }));
+  cap.position.copy(geoToVec(lat, 0, R + 0.5)); polesGroup.add(cap);
+  const label = makeLabel(name, color, lat > 0 ? '90° N' : '90° S');
+  label.position.copy(geoToVec(lat, 0, R + 0.95)); polesGroup.add(label);
+  const hit = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8),
+    new THREE.MeshBasicMaterial({ visible: false }));
+  hit.position.copy(geoToVec(lat, 0, R + 0.45));
+  hit.userData = { name, info, lat, lng: 0, color, dot: cap, baseScale: cap.scale.x };
+  polesGroup.add(hit); hoverTargets.push(hit);
+}
+makePole( 90, 'Nordpol', 'Nördlichster Punkt der Erde (90° N). Hier treffen sich alle Längengrade. Liegt im arktischen Meereis – kein festes Land darunter.', '#9fd8ff');
+makePole(-90, 'Südpol',  'Südlichster Punkt der Erde (90° S). Liegt auf dem Kontinent Antarktis, rund 2.800 m hoch und ganzjährig vereist.', '#d6c2ff');
+
+// ---------------------------------------------------------------------------
 // Themen-Definitionen
 // ---------------------------------------------------------------------------
 const TOPICS = {
@@ -664,10 +808,102 @@ btnCities.addEventListener('click', () => {
   btnCities.classList.toggle('on', cityGroup.visible);
 });
 
+const btnClouds = document.getElementById('btn-clouds');
+btnClouds.addEventListener('click', () => {
+  clouds.visible = !clouds.visible;
+  btnClouds.classList.toggle('on', clouds.visible);
+});
+
+const btnContinents = document.getElementById('btn-continents');
+btnContinents.addEventListener('click', () => {
+  continentGroup.visible = !continentGroup.visible;
+  btnContinents.classList.toggle('on', continentGroup.visible);
+});
+
+const btnPoi = document.getElementById('btn-poi');
+btnPoi.addEventListener('click', () => {
+  poiGroup.visible = !poiGroup.visible;
+  btnPoi.classList.toggle('on', poiGroup.visible);
+});
+
 document.getElementById('btn-reset').addEventListener('click', () => {
   camera.position.copy(START_CAM);
   controls.target.set(0, 0, 0);
   controls.update();
+});
+
+// ---------------------------------------------------------------------------
+// Maus-Interaktion: Koordinaten an der Oberfläche + Orts-Infos
+// ---------------------------------------------------------------------------
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let hovered = null;
+const coordbox = document.getElementById('coordbox');
+const poicard = document.getElementById('poicard');
+
+function fmtLat(lat){ return Math.abs(lat).toFixed(1).replace('.', ',') + '° ' + (lat >= 0 ? 'N' : 'S'); }
+function fmtLng(lng){ return Math.abs(lng).toFixed(1).replace('.', ',') + '° ' + (lng >= 0 ? 'O' : 'W'); }
+
+// 3D-Punkt auf der Kugel -> geografische Koordinaten (Umkehrung von geoToVec)
+function vecToGeo(v) {
+  const local = earthGroup.worldToLocal(v.clone());
+  const r = local.length();
+  const lat = 90 - Math.acos(THREE.MathUtils.clamp(local.y / r, -1, 1)) / DEG;
+  let theta = Math.atan2(local.z, -local.x) / DEG;   // -180..180
+  if (theta < 0) theta += 360;                        // 0..360
+  return { lat, lng: theta - 180 };                   // lng: -180..180
+}
+
+function setHovered(obj) {
+  if (hovered === obj) return;
+  if (hovered) hovered.userData.dot.scale.setScalar(hovered.userData.baseScale);
+  hovered = obj;
+  if (hovered) hovered.userData.dot.scale.setScalar(hovered.userData.baseScale * 1.8);
+}
+
+function onPointerMove(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  pointer.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+
+  // 1) Orte/Pole zuerst (nur sichtbare Gruppen)
+  const visTargets = hoverTargets.filter(h => h.parent && h.parent.visible);
+  const poiHit = raycaster.intersectObjects(visTargets, false)[0];
+  if (poiHit) {
+    const d = poiHit.object.userData;
+    setHovered(poiHit.object);
+    poicard.style.display = 'block';
+    poicard.style.left = e.clientX + 'px';
+    poicard.style.top  = e.clientY + 'px';
+    poicard.style.borderColor = d.color;
+    poicard.innerHTML =
+      `<h4 style="color:${d.color}">${d.name}</h4>` +
+      `<p class="coord">${fmtLat(d.lat)} · ${fmtLng(d.lng)}</p><p>${d.info}</p>`;
+    coordbox.style.display = 'none';
+    renderer.domElement.style.cursor = 'pointer';
+    return;
+  }
+  setHovered(null);
+  poicard.style.display = 'none';
+  renderer.domElement.style.cursor = '';
+
+  // 2) sonst: laufende Koordinatenanzeige an der Erdoberfläche
+  const earthHit = raycaster.intersectObject(earth, false)[0];
+  if (earthHit) {
+    const { lat, lng } = vecToGeo(earthHit.point);
+    coordbox.style.display = 'block';
+    coordbox.style.left = e.clientX + 'px';
+    coordbox.style.top  = e.clientY + 'px';
+    coordbox.innerHTML = `<b>${fmtLat(lat)}</b> &nbsp; <span class="lng">${fmtLng(lng)}</span>`;
+  } else {
+    coordbox.style.display = 'none';
+  }
+}
+
+renderer.domElement.addEventListener('pointermove', onPointerMove);
+renderer.domElement.addEventListener('pointerleave', () => {
+  coordbox.style.display = 'none'; poicard.style.display = 'none'; setHovered(null);
 });
 
 // ---------------------------------------------------------------------------
@@ -676,6 +912,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
+  if (clouds.visible) clouds.rotation.y += 0.0004;   // Wolken ziehen langsam
   renderer.render(scene, camera);
 }
 animate();
