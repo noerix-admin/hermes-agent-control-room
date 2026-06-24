@@ -15,10 +15,13 @@ Dazu (Niveau 5. Klasse Realschule Geografie):
 - **Authentische Erde** mit echter Satellitentextur, glänzenden Ozeanen und Wolken
 - **Pole** mit Kurzinfo, **Kontinente** mit Steckbrief beim Mouseover
 - **Live-Koordinaten** am Mauszeiger (Breite/Länge)
-- **Anklicken zeichnet das Objekt nach**: Länder & Kontinente mit ihrem echten
-  Umriss (Geodaten vom CDN), Nil/Himalaya als Linie, Mount Everest als Gipfel,
-  Städte als Fadenkreuz – jeweils mit Info und **echtem Foto** (Wikipedia)
-- **Länder** mit ihren wichtigsten geografischen Highlights
+- **Länder**: werden mit ihrer **echten Grenze** gezeichnet (Geodaten vom CDN).
+  Mit der Maus darüberfahren hebt das Land farbig hervor und zeichnet den Umriss
+  nach; ein Klick zeigt Infos + **echtes Foto** (Wikipedia).
+- **Städte**: zeigen ihre (ungefähre) **Stadtgrenze**; Klick zeigt Infos + Foto.
+- **Einzelobjekte** als Punkte: Nil (Flusslauf), Himalaya (Gebirge),
+  Mount Everest (Gipfel) – Klick hebt sie hervor und erklärt sie.
+- **Kontinente** mit Umriss + Steckbrief
 - **Mystische Hintergrundmusik**: echtes Stück (`music.mp3`, CC BY 4.0,
   Kevin MacLeod). Fehlt die Datei, spielt automatisch ein generativer Klang.
   Start über den Button **🎵 Musik** (Browser erlauben Ton erst nach einem Klick).
