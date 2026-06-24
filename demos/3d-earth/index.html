@@ -200,6 +200,11 @@
       <span><i style="background:var(--polar)"></i> Polarkreise (±66,5°)</span>
     </div>
   </div>
+
+  <p class="hint" style="font-size:10px; opacity:0.7; margin-top:4px;">
+    Musik: „Ghostpocalypse – Crossing the Threshold“, Kevin MacLeod (incompetech.com),
+    Lizenz CC BY 4.0. Fotos &amp; Grenzen: Wikipedia / Natural Earth.
+  </p>
 </div>
 
 <div id="loader">Lade 3D-Erde …</div>
@@ -210,6 +215,8 @@
 <div id="poicard"></div>
 <!-- Fixe Info-Karte nach Klick auf ein Highlight (Nil, Himalaya, ...) -->
 <div id="featureinfo"></div>
+<!-- Hintergrundmusik (echtes Stück, CC-BY). Fällt auf generativen Klang zurück, falls Datei fehlt. -->
+<audio id="bgm" src="music.mp3" loop preload="auto"></audio>
 
 <script type="importmap">
 {
@@ -1161,15 +1168,45 @@ function buildMusic() {
   musicGain.connect(conv); conv.connect(audioCtx.destination); // + Hall
   musicNodes = [lfo, ...oscs];
 }
-btnMusic.addEventListener('click', async () => {
-  if (!audioCtx) buildMusic();
-  if (audioCtx.state === 'suspended') await audioCtx.resume();
-  musicOn = !musicOn;
-  btnMusic.classList.toggle('on', musicOn);
+// --- Lautstärke-Helfer ---
+function rampGain(v, sec) {
   const now = audioCtx.currentTime;
   musicGain.gain.cancelScheduledValues(now);
   musicGain.gain.setValueAtTime(Math.max(musicGain.gain.value, 0.0001), now);
-  musicGain.gain.exponentialRampToValueAtTime(musicOn ? 0.16 : 0.0001, now + 2.0);
+  musicGain.gain.exponentialRampToValueAtTime(v, now + sec);
+}
+function startSynth() {
+  if (!audioCtx) buildMusic();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  rampGain(0.16, 2.0);
+}
+function stopSynth() { if (musicGain) rampGain(0.0001, 1.5); }
+function fadeAudio(el, to, ms, done) {
+  const from = el.volume, t0 = performance.now();
+  (function step() {
+    const k = Math.min(1, (performance.now() - t0) / ms);
+    el.volume = Math.max(0, Math.min(1, from + (to - from) * k));
+    if (k < 1) requestAnimationFrame(step); else if (done) done();
+  })();
+}
+
+// Echtes Musikstück (music.mp3) – mit generativem Klang als Fallback
+const bgm = document.getElementById('bgm');
+let bgmOk = true, usingSynth = false;
+bgm.addEventListener('error', () => { bgmOk = false; });
+btnMusic.addEventListener('click', () => {
+  musicOn = !musicOn;
+  btnMusic.classList.toggle('on', musicOn);
+  if (musicOn) {
+    if (bgmOk) {
+      bgm.volume = 0;
+      bgm.play().then(() => fadeAudio(bgm, 0.7, 2000))
+        .catch(() => { bgmOk = false; usingSynth = true; startSynth(); });
+    } else { usingSynth = true; startSynth(); }
+  } else {
+    if (usingSynth) stopSynth();
+    else fadeAudio(bgm, 0, 1500, () => bgm.pause());
+  }
 });
 
 document.getElementById('btn-reset').addEventListener('click', () => {

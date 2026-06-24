@@ -19,7 +19,9 @@ Dazu (Niveau 5. Klasse Realschule Geografie):
   Umriss (Geodaten vom CDN), Nil/Himalaya als Linie, Mount Everest als Gipfel,
   Städte als Fadenkreuz – jeweils mit Info und **echtem Foto** (Wikipedia)
 - **Länder** mit ihren wichtigsten geografischen Highlights
-- **Mystische Hintergrundmusik** (prozedural per Web Audio, ohne Audiodatei)
+- **Mystische Hintergrundmusik**: echtes Stück (`music.mp3`, CC BY 4.0,
+  Kevin MacLeod). Fehlt die Datei, spielt automatisch ein generativer Klang.
+  Start über den Button **🎵 Musik** (Browser erlauben Ton erst nach einem Klick).
 
 > Hinweis: Umrisse (Ländergrenzen) und Fotos werden online nachgeladen
 > (jsDelivr bzw. Wikipedia). Ohne Internet erscheinen stattdessen ein Markierungsring
