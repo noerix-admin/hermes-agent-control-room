@@ -116,6 +116,25 @@
   #poicard h4 { margin: 0 0 4px; font-size: 14px; color: var(--accent); }
   #poicard .coord { font-size: 11px; color: var(--muted); margin: 0 0 5px; }
   #poicard p { margin: 0; font-size: 12px; line-height: 1.45; color: #dde6f2; }
+
+  /* ---- Fixe Info-Karte nach Klick auf ein Highlight ---- */
+  #featureinfo {
+    position: fixed; left: 18px; bottom: 18px; z-index: 9; display: none;
+    width: 330px; max-width: calc(100vw - 400px);
+    background: rgba(10,15,26,0.96); border: 1px solid var(--accent);
+    border-radius: 12px; padding: 14px 16px; box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+    pointer-events: none;
+  }
+  #featureinfo h4 { margin: 0 0 6px; font-size: 16px; color: var(--accent); padding-right: 22px; }
+  #featureinfo p { margin: 0; font-size: 13px; line-height: 1.55; color: #dde6f2; }
+  #featureinfo .close {
+    position: absolute; top: 8px; right: 11px; cursor: pointer; pointer-events: auto;
+    color: var(--muted); font-size: 16px; line-height: 1;
+  }
+  #featureinfo .close:hover { color: var(--text); }
+  @media (max-width: 720px) {
+    #featureinfo { bottom: 54%; left: 12px; max-width: calc(100vw - 24px); width: auto; }
+  }
 </style>
 </head>
 <body>
@@ -150,10 +169,18 @@
       <button id="btn-daynight">☀️ Tag &amp; Nacht</button>
       <button id="btn-clouds" class="on">☁️ Wolken</button>
       <button id="btn-continents">🗺️ Kontinente</button>
+      <button id="btn-countries">🏳️ Länder</button>
       <button id="btn-cities">📍 Städte</button>
       <button id="btn-poi" class="on">📌 Orte</button>
+      <button id="btn-music">🎵 Musik</button>
       <button id="btn-reset">↺ Ansicht</button>
     </div>
+  </div>
+
+  <div>
+    <h2 style="font-size:14px; margin-bottom:8px;">Entdecken (anklicken)</h2>
+    <p class="hint" style="margin:0 0 8px;">Klicke einen Punkt auf der Erde oder hier – das Objekt wird hervorgehoben und erklärt.</p>
+    <div class="controls" id="features"></div>
   </div>
 
   <div>
@@ -175,6 +202,8 @@
 <div id="coordbox"></div>
 <!-- Info-Karte beim Mouseover auf einen Ort -->
 <div id="poicard"></div>
+<!-- Fixe Info-Karte nach Klick auf ein Highlight (Nil, Himalaya, ...) -->
+<div id="featureinfo"></div>
 
 <script type="importmap">
 {
@@ -571,15 +600,25 @@ CITIES.forEach(([name, lat, lng, sub]) => {
 const continentGroup = new THREE.Group();
 earthGroup.add(continentGroup);
 continentGroup.visible = false;
+const continentTargets = [];   // Hover-Ziele für die Steckbriefe
+// [Name, Breite, Länge, Steckbrief (5. Klasse)]
 const CONTINENTS = [
-  ['Nordamerika', 48, -100], ['Südamerika', -15, -60], ['Europa', 50, 12],
-  ['Afrika', 4, 21], ['Asien', 46, 95], ['Australien', -25, 134], ['Antarktis', -84, 0],
+  ['Nordamerika', 48, -100, 'Fläche: ~24,7 Mio. km² · ~600 Mio. Menschen.<br>Bekannt: Rocky Mountains, Grand Canyon, längster Fluss Mississippi. Länder u. a. USA & Kanada.'],
+  ['Südamerika', -15, -60, 'Fläche: ~17,8 Mio. km² · ~430 Mio. Menschen.<br>Bekannt: Amazonas-Regenwald, Fluss Amazonas, Gebirge Anden.'],
+  ['Europa', 50, 12, 'Fläche: ~10,2 Mio. km² · ~745 Mio. Menschen.<br>Viele Länder auf wenig Raum. Bekannt: Alpen, Flüsse Rhein & Donau.'],
+  ['Afrika', 4, 21, 'Fläche: ~30,3 Mio. km² · ~1,4 Mrd. Menschen.<br>Bekannt: Wüste Sahara, Fluss Nil, große Savannen mit vielen Tieren.'],
+  ['Asien', 46, 95, 'Fläche: ~44,6 Mio. km² · ~4,7 Mrd. Menschen.<br>Größter Kontinent, die meisten Menschen. Bekannt: Himalaya mit dem Mount Everest.'],
+  ['Australien', -25, 134, 'Fläche: ~8,6 Mio. km² · ~45 Mio. Menschen.<br>Kleinster Kontinent. Bekannt: trockenes Outback, Great Barrier Reef, Kängurus.'],
+  ['Antarktis', -84, 0, 'Fläche: ~14 Mio. km² · keine Einwohner (nur Forscher).<br>Fast komplett von dickem Eis bedeckt – die kälteste Region der Erde.'],
 ];
-CONTINENTS.forEach(([name, lat, lng]) => {
+CONTINENTS.forEach(([name, lat, lng, data]) => {
   const label = makeLabel(name, '#ffe9b0');
   label.position.copy(geoToVec(lat, lng, R * 1.16));
   label.scale.multiplyScalar(0.82);
+  label.userData = { name, color: '#ffe9b0',
+    html: `<h4 style="color:#ffe9b0">${name}</h4><p>${data}</p>` };
   continentGroup.add(label);
+  continentTargets.push(label);
 });
 
 // kleine, wiederverwendbare Glüh-Textur für Punkte
@@ -651,6 +690,135 @@ function makePole(lat, name, info, color) {
 }
 makePole( 90, 'Nordpol', 'Nördlichster Punkt der Erde (90° N). Hier treffen sich alle Längengrade. Liegt im arktischen Meereis – kein festes Land darunter.', '#9fd8ff');
 makePole(-90, 'Südpol',  'Südlichster Punkt der Erde (90° S). Liegt auf dem Kontinent Antarktis, rund 2.800 m hoch und ganzjährig vereist.', '#d6c2ff');
+
+// ---------------------------------------------------------------------------
+// Anklickbare Highlights: Klick hebt das Objekt auf der Erde hervor + Info.
+//   Sprache: 5. Klasse Realschule (kurz, einfach).
+// ---------------------------------------------------------------------------
+const featureGroup = new THREE.Group();   earthGroup.add(featureGroup);
+const countryGroup = new THREE.Group();   earthGroup.add(countryGroup);
+const highlightGroup = new THREE.Group(); earthGroup.add(highlightGroup);
+const clickTargets = [];
+
+// Linienpunkte entlang von Geo-Koordinaten (für Fluss/Gebirge)
+function geoLine(coords, radius) {
+  const pts = [];
+  for (let i = 0; i < coords.length - 1; i++) {
+    const a = coords[i], b = coords[i + 1];
+    for (let s = 0; s <= 10; s++) {
+      const f = s / 10;
+      pts.push(geoToVec(a[0] + (b[0]-a[0])*f, a[1] + (b[1]-a[1])*f, radius));
+    }
+  }
+  return pts;
+}
+
+// Geländemerkmale (Fluss, Gebirge, Gipfel)
+const FEATURES = {
+  nil: {
+    name: 'Nil', color: '#46c8ff', type: 'line', marker: [19, 32.9],
+    path: [[-1,33],[3.5,31.8],[9.6,31.6],[12.2,32.7],[15.6,32.5],[18.5,31.8],[22,32.4],[24,32.9],[27,31.2],[29,31],[30,31.2],[31.5,30.4]],
+    info: 'Der Nil ist rund 6.650 km lang und einer der längsten Flüsse der Erde. Er fließt in Afrika von Süden nach Norden und mündet ins Mittelmeer. Schon vor über 5.000 Jahren lebten an seinen Ufern die alten Ägypter.'
+  },
+  himalaya: {
+    name: 'Himalaya', color: '#ff9d3a', type: 'line', marker: [28.3, 85],
+    path: [[35.2,74],[33,76.5],[31,79],[29.5,82],[28.3,85],[27.9,87.5],[27.5,90],[27.8,93],[28.2,95.5]],
+    info: 'Der Himalaya ist das höchste Gebirge der Erde. Hier stehen alle 14 Berge, die über 8.000 m hoch sind. Das Gebirge entstand, weil zwei Erdplatten zusammenstoßen – und es wächst noch heute langsam weiter.'
+  },
+  everest: {
+    name: 'Mount Everest', color: '#ffffff', type: 'peak', marker: [27.99, 86.93],
+    info: 'Der Mount Everest ist mit 8.849 m der höchste Berg der Erde. Er liegt im Himalaya an der Grenze zwischen Nepal und Tibet (China). 1953 standen die ersten Menschen auf seinem Gipfel.'
+  },
+};
+
+// Länder + ihr wichtigstes geografisches Highlight (5. Klasse)
+const COUNTRIES = {
+  deutschland: { name: 'Deutschland', marker: [51, 10.2], info: 'Höchster Berg: Zugspitze (2.962 m). Längster Fluss: der Rhein. Deutschland grenzt an 9 Nachbarländer – mehr als die meisten Länder Europas.' },
+  aegypten:    { name: 'Ägypten',     marker: [26.8, 30.8], info: 'Mitten durch das Land fließt der Nil. Fast überall sonst ist Wüste (Sahara). Weltbekannt sind die Pyramiden von Gizeh.' },
+  usa:         { name: 'USA',         marker: [39, -98], info: 'Drittgrößtes Land der Erde. Bekannt: der Grand Canyon, die Rocky Mountains und der lange Fluss Mississippi.' },
+  brasilien:   { name: 'Brasilien',   marker: [-10, -52], info: 'Hier liegt der größte Teil des Amazonas-Regenwaldes. Durch ihn fließt der Amazonas – der wasserreichste Fluss der Erde.' },
+  china:       { name: 'China',       marker: [35, 103], info: 'An Chinas Grenze steht der höchste Berg der Erde (Mount Everest). Lange Flüsse: Jangtsekiang und Gelber Fluss.' },
+  russland:    { name: 'Russland',    marker: [61, 100], info: 'Das größte Land der Erde – es liegt in Europa UND Asien. Hier ist auch der Baikalsee, der tiefste See der Welt.' },
+  australien:  { name: 'Australien',  marker: [-25, 134], info: 'Ein Land, das einen ganzen Kontinent bildet. Innen das trockene Outback, vor der Küste das Great Barrier Reef.' },
+  indien:      { name: 'Indien',      marker: [22, 79], info: 'Im Norden das Hochgebirge Himalaya, im Süden tropisch warm. Der Fluss Ganges gilt vielen Menschen als heilig.' },
+  japan:       { name: 'Japan',       marker: [37, 138], info: 'Ein Inselstaat mit vielen Vulkanen und Erdbeben. Der höchste Berg ist der Vulkan Fuji (Fujiyama).' },
+  norwegen:    { name: 'Norwegen',    marker: [62, 9], info: 'Bekannt für die Fjorde – tiefe, schmale Meeresarme zwischen Bergen. Im Norden scheint im Sommer die Mitternachtssonne.' },
+};
+
+// kleine Glüh-/Klick-Punkte erzeugen
+function makeClickPoint(group, key, kind, name, color, lat, lng, size) {
+  const pos = geoToVec(lat, lng, R * 1.008);
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(size, 16, 16), new THREE.MeshBasicMaterial({ color }));
+  dot.position.copy(pos); group.add(dot);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, opacity: 0.7, depthWrite: false }));
+  halo.position.copy(pos); halo.scale.set(size * 6, size * 6, 1); group.add(halo);
+  const hit = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+  hit.position.copy(pos);
+  hit.userData = { kind, key, name, color, lat, lng, dot, baseScale: dot.scale.x, hint: true };
+  group.add(hit);
+  clickTargets.push(hit); hoverTargets.push(hit);
+}
+
+Object.entries(FEATURES).forEach(([key, f]) =>
+  makeClickPoint(featureGroup, key, 'feature', f.name, f.color, f.marker[0], f.marker[1], 0.035));
+Object.entries(COUNTRIES).forEach(([key, c]) =>
+  makeClickPoint(countryGroup, key, 'country', c.name, '#7CFC8A', c.marker[0], c.marker[1], 0.03));
+countryGroup.visible = false;
+
+// Highlight zeichnen + Info-Karte zeigen
+let pulseRing = null;
+function clearHighlight() {
+  while (highlightGroup.children.length) {
+    const c = highlightGroup.children.pop();
+    if (c.geometry) c.geometry.dispose();
+    highlightGroup.remove(c);
+  }
+  pulseRing = null;
+}
+function radialQuat(pos) {                       // Ausrichtung tangential zur Kugel
+  const up = pos.clone().normalize();
+  return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), up);
+}
+function showInfo(name, color, info) {
+  const fi = document.getElementById('featureinfo');
+  fi.style.display = 'block'; fi.style.borderColor = color;
+  fi.innerHTML = `<span class="close">✕</span><h4 style="color:${color}">${name}</h4><p>${info}</p>`;
+  fi.querySelector('.close').onclick = () => { fi.style.display = 'none'; clearHighlight(); };
+}
+function showFeature(key) {
+  const f = FEATURES[key]; clearHighlight();
+  if (f.type === 'line') {
+    const pts = geoLine(f.path, R * 1.013);
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const tube = new THREE.Mesh(
+      new THREE.TubeGeometry(curve, pts.length * 2, 0.018, 8, false),
+      new THREE.MeshBasicMaterial({ color: f.color, transparent: true, opacity: 0.85 }));
+    highlightGroup.add(tube);
+  } else if (f.type === 'peak') {
+    const pos = geoToVec(f.marker[0], f.marker[1], R * 1.006);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.07, 0.1, 40),
+      new THREE.MeshBasicMaterial({ color: f.color, side: THREE.DoubleSide, transparent: true, opacity: 0.95 }));
+    ring.position.copy(pos); ring.quaternion.copy(radialQuat(pos));
+    highlightGroup.add(ring); pulseRing = ring;
+    const up = pos.clone().normalize();
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.55, 8),
+      new THREE.MeshBasicMaterial({ color: f.color, transparent: true, opacity: 0.6 }));
+    beam.position.copy(pos.clone().add(up.clone().multiplyScalar(0.28)));
+    beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
+    highlightGroup.add(beam);
+  }
+  showInfo(f.name, f.color, f.info);
+}
+function showCountry(key) {
+  const c = COUNTRIES[key]; clearHighlight();
+  const pos = geoToVec(c.marker[0], c.marker[1], R * 1.006);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.09, 0.13, 40),
+    new THREE.MeshBasicMaterial({ color: 0x7CFC8A, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
+  ring.position.copy(pos); ring.quaternion.copy(radialQuat(pos));
+  highlightGroup.add(ring); pulseRing = ring;
+  showInfo(c.name, '#7CFC8A', c.info);
+}
+function activate(kind, key) { (kind === 'country' ? showCountry : showFeature)(key); }
 
 // ---------------------------------------------------------------------------
 // Themen-Definitionen
@@ -826,6 +994,79 @@ btnPoi.addEventListener('click', () => {
   btnPoi.classList.toggle('on', poiGroup.visible);
 });
 
+const btnCountries = document.getElementById('btn-countries');
+btnCountries.addEventListener('click', () => {
+  countryGroup.visible = !countryGroup.visible;
+  btnCountries.classList.toggle('on', countryGroup.visible);
+});
+
+// „Entdecken“-Buttons (Nil, Himalaya, Mount Everest)
+const featuresEl = document.getElementById('features');
+Object.entries(FEATURES).forEach(([key, f]) => {
+  const b = document.createElement('button');
+  b.textContent = f.name;
+  b.style.borderColor = f.color;
+  b.addEventListener('click', () => showFeature(key));
+  featuresEl.appendChild(b);
+});
+
+// ---------------------------------------------------------------------------
+// Mystische Hintergrundmusik (prozedural per Web Audio API, ohne Audiodatei)
+// ---------------------------------------------------------------------------
+const btnMusic = document.getElementById('btn-music');
+let audioCtx = null, musicGain = null, musicOn = false, musicNodes = [];
+function buildMusic() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  musicGain = audioCtx.createGain();
+  musicGain.gain.value = 0.0001;
+
+  // Hall (mystischer Raum) über generierte Impulsantwort
+  const conv = audioCtx.createConvolver();
+  const len = audioCtx.sampleRate * 3.2;
+  const imp = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = imp.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2.5);
+  }
+  conv.buffer = imp;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = 700; filter.Q.value = 2;
+
+  // langsame Filterbewegung
+  const lfo = audioCtx.createOscillator();
+  const lfoGain = audioCtx.createGain();
+  lfo.frequency.value = 0.06; lfoGain.gain.value = 380;
+  lfo.connect(lfoGain).connect(filter.frequency); lfo.start();
+
+  // a-Moll-Klangfläche (A2, C4, E4, A4) mit leichter Verstimmung
+  const freqs = [110, 261.63, 329.63, 440];
+  const oscs = [];
+  freqs.forEach((f, i) => {
+    const o = audioCtx.createOscillator();
+    o.type = i === 0 ? 'sine' : 'triangle';
+    o.frequency.value = f; o.detune.value = (i - 1.5) * 6;
+    const g = audioCtx.createGain(); g.gain.value = i === 0 ? 0.5 : 0.22;
+    o.connect(g).connect(filter); o.start();
+    oscs.push(o);
+  });
+
+  filter.connect(musicGain);
+  musicGain.connect(audioCtx.destination);   // direkt
+  musicGain.connect(conv); conv.connect(audioCtx.destination); // + Hall
+  musicNodes = [lfo, ...oscs];
+}
+btnMusic.addEventListener('click', async () => {
+  if (!audioCtx) buildMusic();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  musicOn = !musicOn;
+  btnMusic.classList.toggle('on', musicOn);
+  const now = audioCtx.currentTime;
+  musicGain.gain.cancelScheduledValues(now);
+  musicGain.gain.setValueAtTime(Math.max(musicGain.gain.value, 0.0001), now);
+  musicGain.gain.exponentialRampToValueAtTime(musicOn ? 0.16 : 0.0001, now + 2.0);
+});
+
 document.getElementById('btn-reset').addEventListener('click', () => {
   camera.position.copy(START_CAM);
   controls.target.set(0, 0, 0);
@@ -856,9 +1097,23 @@ function vecToGeo(v) {
 
 function setHovered(obj) {
   if (hovered === obj) return;
-  if (hovered) hovered.userData.dot.scale.setScalar(hovered.userData.baseScale);
+  if (hovered && hovered.userData.dot) hovered.userData.dot.scale.setScalar(hovered.userData.baseScale);
   hovered = obj;
-  if (hovered) hovered.userData.dot.scale.setScalar(hovered.userData.baseScale * 1.8);
+  if (hovered && hovered.userData.dot) hovered.userData.dot.scale.setScalar(hovered.userData.baseScale * 1.8);
+}
+
+// Karte oberhalb des Cursors – nahe dem oberen Rand nach unten klappen,
+// damit sie nicht aus dem Bild läuft (z. B. am Nordpol).
+function placeCard(el, x, y) {
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  el.style.transform = (y < 160) ? 'translate(-50%, 18px)' : 'translate(-50%, calc(-100% - 16px))';
+}
+
+function hoverList() {
+  const list = hoverTargets.filter(h => h.parent && h.parent.visible);
+  if (continentGroup.visible) list.push(...continentTargets);
+  return list;
 }
 
 function onPointerMove(e) {
@@ -867,21 +1122,25 @@ function onPointerMove(e) {
   pointer.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
 
-  // 1) Orte/Pole zuerst (nur sichtbare Gruppen)
-  const visTargets = hoverTargets.filter(h => h.parent && h.parent.visible);
-  const poiHit = raycaster.intersectObjects(visTargets, false)[0];
-  if (poiHit) {
-    const d = poiHit.object.userData;
-    setHovered(poiHit.object);
+  // 1) Punkte/Pole/Kontinente (nur sichtbare Gruppen)
+  const hit = raycaster.intersectObjects(hoverList(), false)[0];
+  if (hit) {
+    const d = hit.object.userData;
+    setHovered(d.dot ? hit.object : null);
     poicard.style.display = 'block';
-    poicard.style.left = e.clientX + 'px';
-    poicard.style.top  = e.clientY + 'px';
-    poicard.style.borderColor = d.color;
-    poicard.innerHTML =
-      `<h4 style="color:${d.color}">${d.name}</h4>` +
-      `<p class="coord">${fmtLat(d.lat)} · ${fmtLng(d.lng)}</p><p>${d.info}</p>`;
+    poicard.style.borderColor = d.color || '#ffe9b0';
+    if (d.html) {
+      poicard.innerHTML = d.html;
+    } else if (d.hint) {
+      poicard.innerHTML = `<h4 style="color:${d.color}">${d.name}</h4>` +
+        `<p class="coord">${fmtLat(d.lat)} · ${fmtLng(d.lng)}</p><p>👆 Klicken für Details</p>`;
+    } else {
+      poicard.innerHTML = `<h4 style="color:${d.color}">${d.name}</h4>` +
+        `<p class="coord">${fmtLat(d.lat)} · ${fmtLng(d.lng)}</p><p>${d.info}</p>`;
+    }
+    placeCard(poicard, e.clientX, e.clientY);
     coordbox.style.display = 'none';
-    renderer.domElement.style.cursor = 'pointer';
+    renderer.domElement.style.cursor = d.html ? 'help' : 'pointer';
     return;
   }
   setHovered(null);
@@ -906,13 +1165,28 @@ renderer.domElement.addEventListener('pointerleave', () => {
   coordbox.style.display = 'none'; poicard.style.display = 'none'; setHovered(null);
 });
 
+// Klick auf ein Highlight (Drag wird ignoriert)
+let _downX = 0, _downY = 0;
+renderer.domElement.addEventListener('pointerdown', e => { _downX = e.clientX; _downY = e.clientY; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (Math.hypot(e.clientX - _downX, e.clientY - _downY) > 6) return;   // war ein Ziehen
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  pointer.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObjects(clickTargets.filter(h => h.parent && h.parent.visible), false)[0];
+  if (hit) activate(hit.object.userData.kind, hit.object.userData.key);
+});
+
 // ---------------------------------------------------------------------------
 // Render-Schleife
 // ---------------------------------------------------------------------------
+let pulseT = 0;
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
   if (clouds.visible) clouds.rotation.y += 0.0004;   // Wolken ziehen langsam
+  if (pulseRing) { pulseT += 0.08; pulseRing.scale.setScalar(1 + 0.18 * Math.sin(pulseT)); }
   renderer.render(scene, camera);
 }
 animate();

@@ -10,16 +10,25 @@ Koordinatensystems anschaulich und mit Beispielen erklärt:
 - **Längengrad** – Linien von Pol zu Pol (Beispiel: Berlin 13,4° O)
 - **Wende- & Polarkreise** – ±23,5° und ±66,5° (Sonnenwende, Mitternachtssonne, Polarnacht)
 
+Dazu (Niveau 5. Klasse Realschule Geografie):
+
+- **Authentische Erde** mit echter Satellitentextur, glänzenden Ozeanen und Wolken
+- **Pole** mit Kurzinfo, **Kontinente** mit Steckbrief beim Mouseover
+- **Live-Koordinaten** am Mauszeiger (Breite/Länge)
+- **Orte zum Anklicken**: Nil, Himalaya, Mount Everest werden auf der Erde
+  hervorgehoben und erklärt; **Länder** mit ihren wichtigsten geografischen Highlights
+- **Mystische Hintergrundmusik** (prozedural per Web Audio, ohne Audiodatei)
+
 ## Bedienung
 
 - **Drehen:** mit der Maus ziehen (oder Finger wischen)
 - **Zoomen:** Mausrad / Pinch-Geste
 - **Begriff wählen:** rechts im Panel anklicken – das Modell hebt die passenden
   Linien farbig hervor und blendet einen Erklärtext mit Beispiel ein
-- **Ansicht:** Auto-Rotation, Gradnetz ein/aus, Ansicht zurücksetzen
-- **Tag & Nacht:** zeigt die Sonne und die Tag-/Nacht-Grenze (Terminator) auf der Erde
-- **Städte:** blendet weitere Beispielstädte mit Koordinaten ein
-  (New York, Rio de Janeiro, Kapstadt, Nairobi, Tokio, Sydney)
+- **Über die Erde fahren:** zeigt laufend Breiten-/Längengrad am Mauszeiger
+- **Punkte anklicken:** hebt Fluss/Gebirge/Berg bzw. Land hervor und zeigt eine Info-Karte
+- **Ansicht:** Auto-Rotation, Gradnetz, Tag & Nacht, Wolken, Kontinente, Länder,
+  Städte, Orte, Musik, Ansicht zurücksetzen
 
 ## Starten
 
