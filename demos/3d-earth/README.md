@@ -22,6 +22,15 @@ Dazu (Niveau 5. Klasse Realschule Geografie):
 - **Einzelobjekte** als Punkte: Nil (Flusslauf), Himalaya (Gebirge),
   Mount Everest (Gipfel) – Klick hebt sie hervor und erklärt sie.
 - **Kontinente** mit Umriss + Steckbrief
+- **Weitere Ebenen** (ein-/ausblendbar): die **7 Weltwunder**, wichtige **Flüsse**,
+  **Gebirge**, **Wüsten** und **Meere/Ozeane** – je mit Highlight, Info & Foto
+- **Greenwich**: Mouseover erklärt den Nullmeridian
+- **Erdschichten-Querschnitt** („🍰 Erdschichten"): ein Tortenstück wird entfernt
+  und man sieht Kruste, Mantel, äußeren und inneren Erdkern mit Kurzdaten
+- **Quiz** („❓ Quiz"): Multiple-Choice rund um die Erde (Niveau Realschule
+  Bayern, 5. Klasse), mit Punkten und Auswertung
+- **VR-tauglich (WebXR)**: Auf einem VR-Headset erscheint ein „VR betreten"-Button;
+  der Globus ist dann in 3D begehbar (die 2D-Bedienpanels bleiben am Bildschirm)
 - **Mystische Hintergrundmusik**: echtes Stück (`music.mp3`, CC BY 4.0,
   Kevin MacLeod). Fehlt die Datei, spielt automatisch ein generativer Klang.
   Start über den Button **🎵 Musik** (Browser erlauben Ton erst nach einem Klick).

@@ -133,6 +133,49 @@
   }
   #featureinfo .imgrow.two img { width: calc(50% - 3px); height: 96px; object-fit: cover; }
   #featureinfo .credit { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+  /* ---- Erdschichten-Infobox (Querschnitt) ---- */
+  #layerinfo {
+    position: fixed; left: 18px; top: 70px; z-index: 8; display: none;
+    width: 280px; max-width: calc(100vw - 400px);
+    background: rgba(10,15,26,0.92); border: 1px solid var(--panel-border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  #layerinfo h3 { margin: 0 0 8px; font-size: 15px; }
+  #layerinfo .layer { display: flex; gap: 8px; align-items: flex-start; margin: 7px 0; font-size: 12px; }
+  #layerinfo .sw { width: 14px; height: 14px; border-radius: 3px; flex: none; margin-top: 1px; }
+  #layerinfo b { color: var(--text); }
+
+  /* ---- Quiz-Overlay ---- */
+  #quiz {
+    position: fixed; inset: 0; z-index: 30; display: none;
+    align-items: center; justify-content: center; background: rgba(3,6,12,0.78);
+    backdrop-filter: blur(4px);
+  }
+  #quizcard {
+    width: 520px; max-width: 92vw; background: #0c1426;
+    border: 1px solid var(--panel-border); border-radius: 16px; padding: 26px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.6);
+  }
+  #quizcard .qhead { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+  #quizcard .qx { cursor: pointer; font-size: 18px; color: var(--muted); }
+  #quizcard h3 { margin: 0 0 16px; font-size: 19px; line-height: 1.35; }
+  #quizcard .opt {
+    display: block; width: 100%; text-align: left; cursor: pointer; color: var(--text);
+    background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border);
+    border-radius: 10px; padding: 12px 14px; margin: 8px 0; font-size: 14px; transition: all .12s;
+  }
+  #quizcard .opt:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
+  #quizcard .opt.correct { border-color: #57d97e; background: rgba(87,217,126,0.18); }
+  #quizcard .opt.wrong { border-color: #ff5b6e; background: rgba(255,91,110,0.16); }
+  #quizcard .qfoot { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; }
+  #quizcard .qnext {
+    cursor: pointer; color: #06101f; background: var(--accent); border: none; font-weight: 700;
+    border-radius: 10px; padding: 10px 18px; font-size: 14px; visibility: hidden;
+  }
+  #quizcard .qbar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; margin-bottom: 16px; }
+  #quizcard .qbar > div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+  #quizcard .qscore { font-size: 15px; color: var(--text); }
   #featureinfo .close {
     position: absolute; top: 8px; right: 11px; cursor: pointer; pointer-events: auto;
     color: var(--muted); font-size: 16px; line-height: 1;
@@ -179,7 +222,20 @@
       <button id="btn-cities">📍 Städte</button>
       <button id="btn-poi" class="on">📌 Orte</button>
       <button id="btn-music">🎵 Musik</button>
+      <button id="btn-layers">🍰 Erdschichten</button>
+      <button id="btn-quiz">❓ Quiz</button>
       <button id="btn-reset">↺ Ansicht</button>
+    </div>
+  </div>
+
+  <div>
+    <h2 style="font-size:14px; margin-bottom:8px;">Geografie-Ebenen</h2>
+    <div class="controls">
+      <button id="btn-wonders">🏛️ Weltwunder</button>
+      <button id="btn-rivers">🏞️ Flüsse</button>
+      <button id="btn-mountains">⛰️ Gebirge</button>
+      <button id="btn-deserts">🏜️ Wüsten</button>
+      <button id="btn-seas">🌊 Meere</button>
     </div>
   </div>
 
@@ -218,6 +274,19 @@
 <!-- Hintergrundmusik (echtes Stück, CC-BY). Fällt auf generativen Klang zurück, falls Datei fehlt. -->
 <audio id="bgm" src="music.mp3" loop preload="auto"></audio>
 
+<!-- Infobox für die Erdschichten (Querschnitt) -->
+<div id="layerinfo"></div>
+
+<!-- Quiz-Overlay -->
+<div id="quiz">
+  <div id="quizcard">
+    <div class="qhead"><span id="qcount"></span><span class="qx" id="qclose">✕</span></div>
+    <div class="qbar"><div id="qprogress"></div></div>
+    <div id="qbody"></div>
+    <div class="qfoot"><span class="qscore" id="qscore"></span><button class="qnext" id="qnext">Weiter →</button></div>
+  </div>
+</div>
+
 <script type="importmap">
 {
   "imports": {
@@ -230,6 +299,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { VRButton } from 'three/addons/webxr/VRButton.js';
 
 const R = 2;                 // Erdradius im Modell
 const DEG = Math.PI / 180;
@@ -262,6 +332,14 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('app').appendChild(renderer.domElement);
+
+// WebXR / VR: „VR betreten“-Button erscheint, wenn ein Headset verfügbar ist
+renderer.xr.enabled = true;
+try {
+  const vrBtn = VRButton.createButton(renderer);
+  vrBtn.style.bottom = '14px';
+  document.body.appendChild(vrBtn);
+} catch (e) { /* WebXR nicht verfügbar */ }
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -887,6 +965,111 @@ Object.entries(COUNTRIES).forEach(([key, c]) => { importantByGeo[c.geo] = key; }
   });
 })();
 
+// ===========================================================================
+// Weitere Ebenen: Weltwunder, Flüsse, Gebirge, Wüsten, Meere (anklickbar)
+// ===========================================================================
+const WONDERS = {
+  chichen:  { name:'Chichén Itzá', marker:[20.68,-88.57], wiki:'Chichén Itzá', info:'Große Pyramide der Maya in Mexiko – eines der „neuen 7 Weltwunder“.' },
+  christo:  { name:'Christusstatue Rio', marker:[-22.95,-43.21], wiki:'Cristo Redentor (Rio de Janeiro)', info:'Riesige Christusstatue über Rio de Janeiro (Brasilien).' },
+  colosseum:{ name:'Kolosseum', marker:[41.89,12.49], wiki:'Kolosseum', info:'Fast 2000 Jahre altes Amphitheater in Rom (Italien).' },
+  wall:     { name:'Chinesische Mauer', marker:[40.43,116.57], wiki:'Chinesische Mauer', info:'Tausende Kilometer lange Mauer in China.' },
+  machu:    { name:'Machu Picchu', marker:[-13.16,-72.55], wiki:'Machu Picchu', info:'Alte Inkastadt hoch in den Anden (Peru).' },
+  petra:    { name:'Petra', marker:[30.33,35.44], wiki:'Petra (Stadt)', info:'In den Fels gehauene Stadt in Jordanien.' },
+  taj:      { name:'Taj Mahal', marker:[27.17,78.04], wiki:'Taj Mahal', info:'Prächtiges Grabmal aus weißem Marmor in Indien.' },
+};
+const RIVERS = {
+  amazonas:   { name:'Amazonas', marker:[-3,-58], wiki:'Amazonas', info:'Wasserreichster Fluss der Erde, fließt durch Südamerika.', path:[[-10.5,-73],[-7,-70],[-4,-63],[-3,-58],[-2,-52],[-0.5,-50]] },
+  mississippi:{ name:'Mississippi', marker:[35,-90], wiki:'Mississippi River', info:'Längster Fluss Nordamerikas (USA).', path:[[47,-95],[44,-92],[39,-90],[35,-90],[32,-91],[29,-89.2]] },
+  jangtse:    { name:'Jangtsekiang', marker:[30,110], wiki:'Jangtsekiang', info:'Längster Fluss Asiens, fließt durch China.', path:[[33,92],[30,100],[29,106],[30,110],[31,118],[31.4,121.5]] },
+  ganges:     { name:'Ganges', marker:[25,83], wiki:'Ganges', info:'Heiliger Fluss in Indien, kommt aus dem Himalaya.', path:[[30,79],[27,80],[25,83],[24,87],[22.5,90]] },
+  donau:      { name:'Donau', marker:[46,19], wiki:'Donau', info:'Großer Fluss Europas; fließt durch viele Länder ins Schwarze Meer.', path:[[48,8.2],[48.6,13],[48.2,16.4],[47.5,19],[44.8,20.5],[44,28],[45.2,29.7]] },
+  kongo:      { name:'Kongo', marker:[-1,18], wiki:'Kongo (Fluss)', info:'Großer Fluss in Afrika, mitten durch den Regenwald.', path:[[-2,28],[0,25],[-1,18],[-3,16],[-6,12.4]] },
+};
+const MOUNTAINS = {
+  anden: { name:'Anden', marker:[-20,-68], wiki:'Anden', info:'Längstes Gebirge der Erde, an der Westküste Südamerikas.', path:[[10,-72],[0,-78],[-12,-75],[-23,-67],[-35,-70],[-45,-72],[-52,-73]] },
+  alpen: { name:'Alpen', marker:[46.5,10], wiki:'Alpen', info:'Höchstes Gebirge Mitteleuropas; höchster Berg ist der Mont Blanc.', path:[[44,7],[45.5,7.5],[46.5,10],[47,13],[47.3,15]] },
+  rocky: { name:'Rocky Mountains', marker:[44,-110], wiki:'Rocky Mountains', info:'Großes Gebirge im Westen Nordamerikas.', path:[[55,-122],[49,-116],[44,-110],[39,-106],[35,-106]] },
+  ural:  { name:'Ural', marker:[58,59], wiki:'Ural (Gebirge)', info:'Gebirge, das die Grenze zwischen Europa und Asien bildet.', path:[[68,66],[64,59],[58,59],[54,58],[51,57]] },
+};
+const DESERTS = {   // poly als [lng,lat]
+  sahara:  { name:'Sahara', marker:[23,13], wiki:'Sahara', info:'Größte Trockenwüste der Erde, in Nordafrika.', poly:[[-10,31],[10,30],[25,28],[30,20],[20,16],[0,15],[-12,20],[-12,28]] },
+  arabian: { name:'Arabische Wüste', marker:[22,45], wiki:'Arabische Wüste', info:'Große Wüste auf der Arabischen Halbinsel.', poly:[[38,30],[48,28],[52,20],[47,16],[40,20],[36,26]] },
+  gobi:    { name:'Wüste Gobi', marker:[43,103], wiki:'Gobi', info:'Große, kalte Wüste in Asien (Mongolei/China).', poly:[[90,45],[100,44],[110,42],[105,40],[95,41]] },
+  kalahari:{ name:'Kalahari', marker:[-23,22], wiki:'Kalahari', info:'Trockene Wüste/Savanne im Süden Afrikas.', poly:[[20,-20],[24,-22],[24,-26],[21,-27],[19,-24]] },
+  atacama: { name:'Atacama', marker:[-23,-70], wiki:'Atacama-Wüste', info:'Trockenste Wüste der Erde, in Chile (Südamerika).', poly:[[-70,-19],[-69,-22],[-69,-26],[-70.5,-27],[-71,-23]] },
+};
+const SEAS = {
+  pazifik:   { name:'Pazifischer Ozean', marker:[0,-150], wiki:'Pazifischer Ozean', info:'Größter und tiefster Ozean der Erde.' },
+  atlantik:  { name:'Atlantischer Ozean', marker:[10,-40], wiki:'Atlantischer Ozean', info:'Zweitgrößter Ozean, zwischen Amerika, Europa und Afrika.' },
+  indik:     { name:'Indischer Ozean', marker:[-25,80], wiki:'Indischer Ozean', info:'Dritter großer Ozean, südlich von Asien.' },
+  arktik:    { name:'Arktischer Ozean', marker:[85,0], wiki:'Arktischer Ozean', info:'Kleinster Ozean, am Nordpol – meist mit Eis bedeckt.' },
+  suedmeer:  { name:'Südpolarmeer', marker:[-62,0], wiki:'Südlicher Ozean', info:'Ozean rund um die Antarktis.' },
+  mittelmeer:{ name:'Mittelmeer', marker:[37,15], wiki:'Mittelmeer', info:'Meer zwischen Europa, Afrika und Asien.' },
+  rotesmeer: { name:'Rotes Meer', marker:[20,38], wiki:'Rotes Meer', info:'Schmales Meer zwischen Afrika und Arabien.' },
+  nordsee:   { name:'Nordsee', marker:[56,3], wiki:'Nordsee', info:'Teil des Atlantiks bei Deutschland, England und den Niederlanden.' },
+  karibik:   { name:'Karibisches Meer', marker:[15,-75], wiki:'Karibisches Meer', info:'Warmes Meer mit vielen Inseln bei Mittelamerika.' },
+};
+
+const LAYERS = {
+  wonder:   { data: WONDERS,   color: 0xffd24a },
+  river:    { data: RIVERS,    color: 0x46c8ff },
+  mountain: { data: MOUNTAINS, color: 0xff9d3a },
+  desert:   { data: DESERTS,   color: 0xe0b84a },
+  sea:      { data: SEAS,      color: 0x4aa3ff },
+};
+const layerGroups = {};
+for (const kind in LAYERS) {
+  const L = LAYERS[kind];
+  L.colStr = '#' + L.color.toString(16).padStart(6, '0');
+  const grp = new THREE.Group(); grp.visible = false; earthGroup.add(grp);
+  layerGroups[kind] = grp;
+  for (const key in L.data) {
+    const e = L.data[key];
+    makeClickPoint(grp, key, kind, e.name, L.colStr, e.marker[0], e.marker[1], 0.026);
+  }
+}
+
+// Greenwich: dauerhaft als Info-Ort (Mouseover zeigt Erklärung)
+makeInfoPoint(51.48, 0, 'Greenwich', 'Stadtteil von London – hier verläuft der Nullmeridian (0° Länge). Von hier aus wird die Weltzeit (UTC/GMT) gemessen.', '#ffd24a');
+
+// ===========================================================================
+// Querschnitt: „Tortenstück“ aus der Erde entfernt → Erdschichten sichtbar
+// ===========================================================================
+const cutawayGroup = new THREE.Group();
+cutawayGroup.visible = false;
+cutawayGroup.rotation.y = 3.0;           // Öffnung zur Standard-Kamera drehen
+scene.add(cutawayGroup);
+
+const EARTH_LAYERS = [
+  { name:'Innerer Erdkern', r0:0.00, r1:0.22, color:0xffe08a, info:'fest, aus Eisen – bis ~6.000 °C heiß' },
+  { name:'Äußerer Erdkern', r0:0.22, r1:0.55, color:0xff8c42, info:'flüssig, Eisen & Nickel – erzeugt das Erdmagnetfeld' },
+  { name:'Erdmantel',       r0:0.55, r1:0.93, color:0xc0392b, info:'~2.900 km dick, heißes zähes Gestein – bewegt die Erdplatten' },
+  { name:'Erdkruste',       r0:0.93, r1:1.00, color:0x4a7c3a, info:'dünne feste Außenhaut – nur 5–70 km dick' },
+];
+const PHILEN = Math.PI * 1.5;            // 90°-Stück fehlt
+const cutEarth = new THREE.Mesh(
+  new THREE.SphereGeometry(R, 96, 64, 0, PHILEN),
+  new THREE.MeshPhongMaterial({ map: earth.material.map, shininess: 6, side: THREE.DoubleSide })
+);
+cutawayGroup.add(cutEarth);
+EARTH_LAYERS.slice(0, 3).forEach(L => {
+  cutawayGroup.add(new THREE.Mesh(
+    new THREE.SphereGeometry(R * L.r1, 64, 48, 0, PHILEN),
+    new THREE.MeshPhongMaterial({ color: L.color, shininess: 10, side: THREE.DoubleSide })
+  ));
+});
+function buildCutFace(rotY) {
+  const face = new THREE.Group();
+  EARTH_LAYERS.forEach(L => {
+    const geo = new THREE.RingGeometry(R * L.r0, R * L.r1, 64, 1, Math.PI / 2, Math.PI);
+    face.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: L.color, side: THREE.DoubleSide })));
+  });
+  face.rotation.y = rotY;
+  return face;
+}
+cutawayGroup.add(buildCutFace(0));               // Schnittfläche in der Ebene z = 0
+cutawayGroup.add(buildCutFace(-Math.PI / 2));    // Schnittfläche in der Ebene x = 0
+
 // ---------------------------------------------------------------------------
 // Highlight zeichnen + Info-Karte (mit Foto) zeigen
 // ---------------------------------------------------------------------------
@@ -996,10 +1179,31 @@ function showCity(key) {
   ringMarker(c.lat, c.lng, CITY_COLOR, 0.05);
   showInfo(c.name, '#9fd8ff', c.info, c.wiki);
 }
+function showLineSite(kind, key) {
+  const e = LAYERS[kind].data[key]; clearHighlight();
+  const pts = geoLine(e.path, R * 1.013);
+  highlightGroup.add(new THREE.Mesh(
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 2, 0.016, 8, false),
+    new THREE.MeshBasicMaterial({ color: LAYERS[kind].color, transparent: true, opacity: 0.9 })));
+  showInfo(e.name, LAYERS[kind].colStr, e.info, e.wiki);
+}
+function showArea(kind, key) {
+  const e = LAYERS[kind].data[key]; clearHighlight();
+  addCountryShape(highlightGroup, [[e.poly]], LAYERS[kind].color, 0.28, R * 1.005);
+  showInfo(e.name, LAYERS[kind].colStr, e.info, e.wiki);
+}
+function showPointSite(kind, key) {
+  const e = LAYERS[kind].data[key]; clearHighlight();
+  ringMarker(e.marker[0], e.marker[1], LAYERS[kind].color, 0.12);
+  showInfo(e.name, LAYERS[kind].colStr, e.info, e.wiki);
+}
 function activate(kind, key) {
   if (kind === 'country') showCountry(key);
   else if (kind === 'continent') showContinent(key);
   else if (kind === 'city') showCity(key);
+  else if (kind === 'river' || kind === 'mountain') showLineSite(kind, key);
+  else if (kind === 'desert') showArea(kind, key);
+  else if (kind === 'sea' || kind === 'wonder') showPointSite(kind, key);
   else showFeature(key);
 }
 
@@ -1182,6 +1386,81 @@ btnCountries.addEventListener('click', () => {
   countryGroup.visible = !countryGroup.visible;
   btnCountries.classList.toggle('on', countryGroup.visible);
 });
+
+// Geografie-Ebenen ein/aus
+[['btn-wonders','wonder'],['btn-rivers','river'],['btn-mountains','mountain'],['btn-deserts','desert'],['btn-seas','sea']].forEach(([id, kind]) => {
+  const b = document.getElementById(id);
+  b.addEventListener('click', () => { layerGroups[kind].visible = !layerGroups[kind].visible; b.classList.toggle('on', layerGroups[kind].visible); });
+});
+
+// Querschnitt / Erdschichten
+const btnLayers = document.getElementById('btn-layers');
+const layerinfo = document.getElementById('layerinfo');
+btnLayers.addEventListener('click', () => {
+  const on = !cutawayGroup.visible;
+  cutawayGroup.visible = on;
+  earthGroup.visible = !on;           // normale Erde aus, Querschnitt an
+  btnLayers.classList.toggle('on', on);
+  layerinfo.style.display = on ? 'block' : 'none';
+  if (on) layerinfo.innerHTML = '<h3>Aufbau der Erde</h3>' + EARTH_LAYERS.slice().reverse().map(L =>
+    `<div class="layer"><span class="sw" style="background:#${L.color.toString(16).padStart(6,'0')}"></span><span><b>${L.name}</b> – ${L.info}</span></div>`).join('');
+});
+
+// ---------------------------------------------------------------------------
+// Quiz (Multiple Choice, Niveau Realschule Bayern, 5. Klasse)
+// ---------------------------------------------------------------------------
+const QUIZ = [
+  { q:'Wie heißt die gedachte Linie genau in der Mitte zwischen Nord- und Südpol?', a:['Äquator','Nullmeridian','Wendekreis','Polarkreis'], c:0 },
+  { q:'Welchen Wert hat der Nullmeridian?', a:['90° Länge','0° Länge','180° Länge','0° Breite'], c:1 },
+  { q:'Wie viele Kontinente hat die Erde?', a:['Fünf','Sechs','Sieben','Neun'], c:2 },
+  { q:'Welcher ist der größte Kontinent?', a:['Afrika','Europa','Asien','Amerika'], c:2 },
+  { q:'Welcher ist der größte Ozean der Erde?', a:['Atlantik','Indischer Ozean','Pazifik','Nordmeer'], c:2 },
+  { q:'Welcher Berg ist der höchste der Erde?', a:['Mont Blanc','Zugspitze','Mount Everest','Kilimandscharo'], c:2 },
+  { q:'Durch welches Land fließt der Nil?', a:['Brasilien','Ägypten','Indien','China'], c:1 },
+  { q:'Wie heißt die äußerste, feste Schicht der Erde?', a:['Erdmantel','Erdkruste','Erdkern','Erdachse'], c:1 },
+  { q:'Was geben Breitengrade an?', a:['Abstand vom Nullmeridian','Abstand vom Äquator (Nord/Süd)','die Uhrzeit','die Höhe eines Berges'], c:1 },
+  { q:'In welcher Stadt verläuft der Nullmeridian?', a:['Paris','Greenwich (London)','Berlin','Rom'], c:1 },
+  { q:'Wie heißt die größte Wüste der Erde?', a:['Gobi','Kalahari','Sahara','Atacama'], c:2 },
+  { q:'Was sind die Wendekreise?', a:['die beiden Pole','Breitenkreise bei 23,5° N/S','der Äquator','alle Längengrade'], c:1 },
+];
+const quizEl = document.getElementById('quiz');
+const qBody = document.getElementById('qbody'), qCount = document.getElementById('qcount');
+const qScoreEl = document.getElementById('qscore'), qNext = document.getElementById('qnext'), qProgress = document.getElementById('qprogress');
+let qIndex = 0, qScore = 0, qAnswered = false, quizDone = false;
+
+function renderQuestion() {
+  qAnswered = false; qNext.style.visibility = 'hidden';
+  const item = QUIZ[qIndex];
+  qCount.textContent = `Frage ${qIndex + 1} von ${QUIZ.length}`;
+  qProgress.style.width = (qIndex / QUIZ.length * 100) + '%';
+  qScoreEl.textContent = `Punkte: ${qScore}`;
+  qBody.innerHTML = `<h3>${item.q}</h3>` + item.a.map((opt, i) => `<button class="opt" data-i="${i}">${opt}</button>`).join('');
+  qBody.querySelectorAll('.opt').forEach(btn => btn.addEventListener('click', () => answer(+btn.dataset.i)));
+}
+function answer(i) {
+  if (qAnswered) return; qAnswered = true;
+  const item = QUIZ[qIndex];
+  qBody.querySelectorAll('.opt').forEach(b => { b.disabled = true; const bi = +b.dataset.i; if (bi === item.c) b.classList.add('correct'); else if (bi === i) b.classList.add('wrong'); });
+  if (i === item.c) qScore++;
+  qScoreEl.textContent = `Punkte: ${qScore}`;
+  qNext.textContent = qIndex < QUIZ.length - 1 ? 'Weiter →' : 'Ergebnis';
+  qNext.style.visibility = 'visible';
+}
+function showResult() {
+  quizDone = true; qProgress.style.width = '100%'; qCount.textContent = 'Fertig!';
+  const pct = Math.round(qScore / QUIZ.length * 100);
+  const msg = pct >= 80 ? 'Super gemacht! 🌟' : pct >= 50 ? 'Gut – weiter üben! 👍' : 'Nochmal probieren lohnt sich! 💪';
+  qBody.innerHTML = `<h3>Dein Ergebnis: ${qScore} / ${QUIZ.length} richtig</h3><p style="color:var(--muted)">${msg}</p>`;
+  qScoreEl.textContent = ''; qNext.textContent = 'Nochmal'; qNext.style.visibility = 'visible';
+}
+function startQuiz() { quizDone = false; qIndex = 0; qScore = 0; renderQuestion(); }
+qNext.addEventListener('click', () => {
+  if (quizDone) { startQuiz(); return; }
+  if (qIndex < QUIZ.length - 1) { qIndex++; renderQuestion(); } else showResult();
+});
+document.getElementById('btn-quiz').addEventListener('click', () => { quizEl.style.display = 'flex'; startQuiz(); });
+document.getElementById('qclose').addEventListener('click', () => { quizEl.style.display = 'none'; });
+quizEl.addEventListener('click', e => { if (e.target === quizEl) quizEl.style.display = 'none'; });
 
 // „Entdecken“-Buttons (Nil, Himalaya, Mount Everest)
 const featuresEl = document.getElementById('features');
@@ -1426,14 +1705,13 @@ renderer.domElement.addEventListener('pointerup', e => {
 // Render-Schleife
 // ---------------------------------------------------------------------------
 let pulseT = 0;
-function animate() {
-  requestAnimationFrame(animate);
+// setAnimationLoop unterstützt normale Anzeige UND VR (WebXR)
+renderer.setAnimationLoop(() => {
   controls.update();
   if (clouds.visible) clouds.rotation.y += 0.0004;   // Wolken ziehen langsam
   if (pulseRing) { pulseT += 0.08; pulseRing.scale.setScalar(1 + 0.18 * Math.sin(pulseT)); }
   renderer.render(scene, camera);
-}
-animate();
+});
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
