@@ -231,19 +231,15 @@
   <div>
     <h2 style="font-size:14px; margin-bottom:8px;">Geografie-Ebenen</h2>
     <div class="controls">
-      <button id="btn-wonders">🏛️ Weltwunder</button>
+      <button id="btn-wonders">🏛️ Weltwunder (Antike)</button>
+      <button id="btn-newwonders">🗿 Neue Weltwunder</button>
       <button id="btn-heritage">🏯 Welterbe</button>
+      <button id="btn-records">📕 Rekorde</button>
       <button id="btn-rivers">🏞️ Flüsse</button>
       <button id="btn-mountains">⛰️ Gebirge</button>
       <button id="btn-deserts">🏜️ Wüsten</button>
       <button id="btn-seas">🌊 Meere</button>
     </div>
-  </div>
-
-  <div>
-    <h2 style="font-size:14px; margin-bottom:8px;">Entdecken (anklicken)</h2>
-    <p class="hint" style="margin:0 0 8px;">Klicke einen Punkt auf der Erde oder hier – das Objekt wird hervorgehoben und erklärt.</p>
-    <div class="controls" id="features"></div>
   </div>
 
   <div>
@@ -680,36 +676,37 @@ const cityGroup = new THREE.Group();
 earthGroup.add(cityGroup);
 cityGroup.visible = false;
 // Beschriftungen + anklickbare Punkte werden weiter unten erzeugt (nach makeClickPoint)
-const CITIES = [
-  { key:'newyork', name:'New York',       lat:40.7,  lng:-74.0, wiki:'New York City',
-    info:'Größte Stadt der USA. Bekannt für die Freiheitsstatue und die Wolkenkratzer von Manhattan.' },
-  { key:'rio',     name:'Rio de Janeiro', lat:-22.9, lng:-43.2, wiki:'Rio de Janeiro',
-    info:'Berühmt für lange Sandstrände, den Zuckerhut und die große Christusstatue auf dem Berg.' },
-  { key:'kapstadt',name:'Kapstadt',       lat:-33.9, lng:18.4,  wiki:'Kapstadt',
-    info:'Liegt am Fuß des Tafelbergs in Südafrika, nahe der Stelle, wo Atlantik und Indischer Ozean aufeinandertreffen.' },
-  { key:'nairobi', name:'Nairobi',        lat:-1.3,  lng:36.8,  wiki:'Nairobi',
-    info:'Hauptstadt von Kenia, fast genau am Äquator. In der Nähe gibt es berühmte Tier-Nationalparks.' },
-  { key:'tokio',   name:'Tokio',          lat:35.7,  lng:139.7, wiki:'Tokio',
-    info:'Hauptstadt von Japan und eine der größten Städte der Welt – hier leben viele Millionen Menschen.' },
-  { key:'sydney',  name:'Sydney',         lat:-33.9, lng:151.2, wiki:'Sydney',
-    info:'Größte Stadt Australiens, weltbekannt für das Opernhaus direkt am Hafen.' },
-  // wichtigste Stadt je Land
-  { key:'berlin',  name:'Berlin',  lat:52.52, lng:13.40, wiki:'Berlin', info:'Hauptstadt Deutschlands und größte Stadt des Landes. Bekannt: das Brandenburger Tor.' },
-  { key:'paris',   name:'Paris',   lat:48.86, lng:2.35,  wiki:'Paris', info:'Hauptstadt Frankreichs. Wahrzeichen ist der Eiffelturm.' },
-  { key:'london',  name:'London',  lat:51.51, lng:-0.13, wiki:'London', info:'Hauptstadt des Vereinigten Königreichs, an der Themse – nahe Greenwich (Nullmeridian).' },
-  { key:'rom',     name:'Rom',     lat:41.90, lng:12.50, wiki:'Rom', info:'Hauptstadt Italiens. Bekannt: das Kolosseum und der Vatikan.' },
-  { key:'madrid',  name:'Madrid',  lat:40.42, lng:-3.70, wiki:'Madrid', info:'Hauptstadt Spaniens, liegt fast genau in der Mitte des Landes.' },
-  { key:'oslo',    name:'Oslo',    lat:59.91, lng:10.75, wiki:'Oslo', info:'Hauptstadt Norwegens, liegt am Ende eines langen Fjords.' },
-  { key:'kairo',   name:'Kairo',   lat:30.04, lng:31.24, wiki:'Kairo', info:'Hauptstadt Ägyptens, liegt am Nil – nahe den Pyramiden von Gizeh.' },
-  { key:'toronto', name:'Toronto', lat:43.65, lng:-79.38, wiki:'Toronto', info:'Größte Stadt Kanadas, am Ontariosee.' },
-  { key:'mexcity', name:'Mexiko-Stadt', lat:19.43, lng:-99.13, wiki:'Mexiko-Stadt', info:'Hauptstadt Mexikos – eine der größten Städte der Welt, hoch in den Bergen.' },
-  { key:'buenos',  name:'Buenos Aires', lat:-34.61, lng:-58.38, wiki:'Buenos Aires', info:'Hauptstadt Argentiniens, am breiten Fluss Río de la Plata.' },
-  { key:'moskau',  name:'Moskau',  lat:55.76, lng:37.62, wiki:'Moskau', info:'Hauptstadt Russlands und größte Stadt Europas. Bekannt: der Rote Platz.' },
-  { key:'peking',  name:'Peking',  lat:39.90, lng:116.41, wiki:'Peking', info:'Hauptstadt Chinas, nahe der Chinesischen Mauer.' },
-  { key:'delhi',   name:'Neu-Delhi', lat:28.61, lng:77.21, wiki:'Neu-Delhi', info:'Hauptstadt Indiens, im Norden des Landes.' },
-  { key:'riad',    name:'Riad',    lat:24.71, lng:46.68, wiki:'Riad', info:'Hauptstadt Saudi-Arabiens, mitten in der Wüste.' },
-  { key:'jakarta', name:'Jakarta', lat:-6.21, lng:106.85, wiki:'Jakarta', info:'Hauptstadt Indonesiens, auf der Insel Java.' },
-];
+// Die jeweils 5 wichtigsten Städte je Land  [Name, Breite, Länge, Hauptstadt?, Wiki-Titel?]
+const COUNTRY_CITIES = {
+  'Deutschland': [['Berlin',52.52,13.40,1],['Hamburg',53.55,9.99],['München',48.14,11.58],['Köln',50.94,6.96],['Frankfurt am Main',50.11,8.68]],
+  'Frankreich': [['Paris',48.86,2.35,1],['Marseille',43.30,5.37],['Lyon',45.76,4.84],['Toulouse',43.60,1.44],['Nizza',43.70,7.27]],
+  'Vereinigtes Königreich': [['London',51.51,-0.13,1],['Birmingham',52.48,-1.90],['Manchester',53.48,-2.24],['Glasgow',55.86,-4.25],['Liverpool',53.41,-2.99]],
+  'Italien': [['Rom',41.90,12.50,1],['Mailand',45.46,9.19],['Neapel',40.85,14.27],['Turin',45.07,7.69],['Florenz',43.77,11.26]],
+  'Spanien': [['Madrid',40.42,-3.70,1],['Barcelona',41.39,2.17],['Valencia',39.47,-0.38],['Sevilla',37.39,-5.99],['Bilbao',43.26,-2.93]],
+  'Norwegen': [['Oslo',59.91,10.75,1],['Bergen',60.39,5.32],['Trondheim',63.43,10.39],['Stavanger',58.97,5.73],['Tromsø',69.65,18.96]],
+  'Ägypten': [['Kairo',30.04,31.24,1],['Alexandria',31.20,29.92],['Gizeh',30.01,31.21],['Luxor',25.69,32.64],['Assuan',24.09,32.90]],
+  'Südafrika': [['Pretoria',-25.75,28.19,1],['Kapstadt',-33.92,18.42],['Johannesburg',-26.20,28.05],['Durban',-29.86,31.02],['Bloemfontein',-29.12,26.21]],
+  'USA': [['Washington',38.90,-77.04,1,'Washington, D.C.'],['New York',40.71,-74.01,0,'New York City'],['Los Angeles',34.05,-118.24],['Chicago',41.88,-87.63],['San Francisco',37.77,-122.42]],
+  'Kanada': [['Ottawa',45.42,-75.70,1],['Toronto',43.65,-79.38],['Montreal',45.50,-73.57],['Vancouver',49.28,-123.12],['Calgary',51.05,-114.07]],
+  'Mexiko': [['Mexiko-Stadt',19.43,-99.13,1],['Guadalajara',20.67,-103.35],['Monterrey',25.69,-100.32],['Puebla',19.04,-98.21],['Tijuana',32.51,-117.04]],
+  'Brasilien': [['Brasília',-15.79,-47.88,1],['São Paulo',-23.55,-46.63],['Rio de Janeiro',-22.91,-43.17],['Salvador',-12.97,-38.51],['Belo Horizonte',-19.92,-43.94]],
+  'Argentinien': [['Buenos Aires',-34.61,-58.38,1],['Córdoba',-31.42,-64.18,0,'Córdoba (Argentinien)'],['Rosario',-32.95,-60.64],['Mendoza',-32.89,-68.84],['La Plata',-34.92,-57.95]],
+  'Russland': [['Moskau',55.76,37.62,1],['Sankt Petersburg',59.93,30.34],['Nowosibirsk',55.01,82.93],['Jekaterinburg',56.84,60.65],['Wladiwostok',43.12,131.89]],
+  'China': [['Peking',39.90,116.41,1],['Shanghai',31.23,121.47],['Guangzhou',23.13,113.26],['Shenzhen',22.54,114.06],['Chengdu',30.57,104.07]],
+  'Indien': [['Neu-Delhi',28.61,77.21,1],['Mumbai',19.08,72.88],['Kolkata',22.57,88.36],['Bangalore',12.97,77.59],['Chennai',13.08,80.27]],
+  'Saudi-Arabien': [['Riad',24.71,46.68,1],['Dschidda',21.49,39.18],['Mekka',21.42,39.83],['Medina',24.47,39.61],['Dammam',26.43,50.10]],
+  'Indonesien': [['Jakarta',-6.21,106.85,1],['Surabaya',-7.26,112.75],['Bandung',-6.91,107.61],['Medan',3.59,98.67],['Semarang',-6.97,110.42]],
+  'Japan': [['Tokio',35.68,139.69,1],['Osaka',34.69,135.50],['Yokohama',35.44,139.64],['Nagoya',35.18,136.91],['Sapporo',43.06,141.35]],
+  'Australien': [['Canberra',-35.28,149.13,1],['Sydney',-33.87,151.21],['Melbourne',-37.81,144.96],['Brisbane',-27.47,153.03],['Perth',-31.95,115.86]],
+};
+const CITIES = [];
+let _cityN = 0;
+for (const land in COUNTRY_CITIES) {
+  COUNTRY_CITIES[land].forEach(([name, lat, lng, cap, wiki]) => {
+    CITIES.push({ key: 'city' + (_cityN++), name, lat, lng, wiki: wiki || name,
+      info: cap ? `Hauptstadt von ${land}.` : `Eine der wichtigsten Städte in ${land}.` });
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Kontinente – Namens-Beschriftungen (über Schaltfläche)
@@ -815,7 +812,6 @@ makePole(-90, 'Südpol',  'Südlichster Punkt der Erde (90° S). Liegt auf dem K
 // Anklickbare Highlights: Klick hebt das Objekt auf der Erde hervor + Info.
 //   Sprache: 5. Klasse Realschule (kurz, einfach).
 // ---------------------------------------------------------------------------
-const featureGroup = new THREE.Group();   earthGroup.add(featureGroup);
 const countryGroup = new THREE.Group();   earthGroup.add(countryGroup);
 const highlightGroup = new THREE.Group(); earthGroup.add(highlightGroup);
 
@@ -831,24 +827,6 @@ function geoLine(coords, radius) {
   }
   return pts;
 }
-
-// Geländemerkmale (Fluss, Gebirge, Gipfel)
-const FEATURES = {
-  nil: {
-    name: 'Nil', color: '#46c8ff', type: 'line', marker: [19, 32.9], wiki: 'Nil',
-    path: [[-1,33],[3.5,31.8],[9.6,31.6],[12.2,32.7],[15.6,32.5],[18.5,31.8],[22,32.4],[24,32.9],[27,31.2],[29,31],[30,31.2],[31.5,30.4]],
-    info: 'Der Nil ist rund 6.650 km lang und einer der längsten Flüsse der Erde. Er fließt in Afrika von Süden nach Norden und mündet ins Mittelmeer. Schon vor über 5.000 Jahren lebten an seinen Ufern die alten Ägypter.'
-  },
-  himalaya: {
-    name: 'Himalaya', color: '#ff9d3a', type: 'line', marker: [28.3, 85], wiki: 'Himalaya',
-    path: [[35.2,74],[33,76.5],[31,79],[29.5,82],[28.3,85],[27.9,87.5],[27.5,90],[27.8,93],[28.2,95.5]],
-    info: 'Der Himalaya ist das höchste Gebirge der Erde. Hier stehen alle 14 Berge, die über 8.000 m hoch sind. Das Gebirge entstand, weil zwei Erdplatten zusammenstoßen – und es wächst noch heute langsam weiter.'
-  },
-  everest: {
-    name: 'Mount Everest', color: '#ffffff', type: 'peak', marker: [27.99, 86.93], wiki: 'Mount Everest',
-    info: 'Der Mount Everest ist mit 8.849 m der höchste Berg der Erde. Er liegt im Himalaya an der Grenze zwischen Nepal und Tibet (China). 1953 standen die ersten Menschen auf seinem Gipfel.'
-  },
-};
 
 // Länder + ihr wichtigstes geografisches Highlight (5. Klasse)
 const COUNTRIES = {
@@ -888,9 +866,6 @@ function makeClickPoint(group, key, kind, name, color, lat, lng, size) {
   clickTargets.push(hit); hoverTargets.push(hit);
 }
 
-// Nil/Himalaya/Everest bleiben anklickbare Punkte
-Object.entries(FEATURES).forEach(([key, f]) =>
-  makeClickPoint(featureGroup, key, 'feature', f.name, f.color, f.marker[0], f.marker[1], 0.035));
 countryGroup.visible = false;
 
 // ---------------------------------------------------------------------------
@@ -931,12 +906,12 @@ function pointInRings(lng, lat, rings) {                // Punkt-in-Polygon (eve
 }
 function inCity(lat, lng, c) {
   const dLat = lat - c.lat, dLng = (lng - c.lng) * Math.cos(lat * DEG);
-  return Math.hypot(dLat, dLng) < 1.0;
+  return Math.hypot(dLat, dLng) < 0.6;
 }
 
 // Stadtgrenzen sofort zeichnen (brauchen keine Geodaten)
 CITIES.forEach(c => {
-  c.ring = smallCircle(c.lat, c.lng, 0.7);
+  c.ring = smallCircle(c.lat, c.lng, 0.45);
   const mat = new THREE.LineBasicMaterial({ color: CITY_COLOR, transparent: true, opacity: 0.85 });
   cityGroup.add(ringLine(c.ring, mat, R * 1.004));
 });
@@ -946,6 +921,19 @@ function flattenPoly(poly) {
   const verts = [], holes = [];
   poly.forEach((ring, ri) => { if (ri > 0) holes.push(verts.length / 2); ring.forEach(([lng, lat]) => verts.push(lng, lat)); });
   return { verts, holes };
+}
+// Dicke, gleichmäßige Linie exakt entlang der Außengrenzen (als Tube, ohne Füllung)
+function countryOutlineGroup(polys, color, radius, tubeR) {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ color });
+  polys.forEach(poly => {
+    const ring = poly[0];
+    if (!ring || ring.length < 3) return;
+    const pts = ring.map(([lng, lat]) => geoToVec(lat, lng, radius));
+    const curve = new THREE.CatmullRomCurve3(pts, true);
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(16, pts.length * 2), tubeR, 6, true), mat));
+  });
+  return g;
 }
 function addCountryShape(group, polys, color, fillOpacity, radius) {
   const omat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95 });
@@ -981,8 +969,8 @@ Object.entries(COUNTRIES).forEach(([key, c]) => { importantByGeo[c.geo] = key; }
     COUNTRIES[key].rings = ringsOf(f.geometry);    // alle Ringe (genaue Klick-Erkennung)
     COUNTRIES[key].polys = polys;
     polys.forEach(p => countryGroup.add(ringLine(p[0], cmat, R * 1.004)));   // nur Außengrenze
-    const hi = new THREE.Group(); hi.visible = false;                        // Hover: heller Umriss + Füllung
-    addCountryShape(hi, polys, 0xffe9a8, 0.3, R * 1.0045);
+    const hi = countryOutlineGroup(polys, 0xfff2a0, R * 1.006, 0.008);       // Hover: dicke gelbe Außenlinie
+    hi.visible = false;
     countryGroup.add(hi);
     COUNTRIES[key].hi = hi;
   });
@@ -1002,6 +990,7 @@ const WONDERS = {
   pharos:    { name:'Leuchtturm von Alexandria', marker:[31.21,29.89], wiki:'Leuchtturm von Alexandria', info:'Einer der höchsten Leuchttürme der Antike (Ägypten). Nicht mehr erhalten.' },
 };
 const RIVERS = {
+  nil:        { name:'Nil', marker:[19,32.9], wiki:'Nil', info:'Mit ~6.650 km einer der längsten Flüsse der Erde. Fließt in Afrika nach Norden ins Mittelmeer; schon die alten Ägypter lebten an seinen Ufern.', path:[[-1,33],[3.5,31.8],[9.6,31.6],[12.2,32.7],[15.6,32.5],[18.5,31.8],[22,32.4],[24,32.9],[27,31.2],[29,31],[30,31.2],[31.5,30.4]] },
   amazonas:   { name:'Amazonas', marker:[-3,-58], wiki:'Amazonas', info:'Wasserreichster Fluss der Erde, fließt durch Südamerika.', path:[[-10.5,-73],[-7,-70],[-4,-63],[-3,-58],[-2,-52],[-0.5,-50]] },
   mississippi:{ name:'Mississippi', marker:[35,-90], wiki:'Mississippi River', info:'Längster Fluss Nordamerikas (USA).', path:[[47,-95],[44,-92],[39,-90],[35,-90],[32,-91],[29,-89.2]] },
   jangtse:    { name:'Jangtsekiang', marker:[30,110], wiki:'Jangtsekiang', info:'Längster Fluss Asiens, fließt durch China.', path:[[33,92],[30,100],[29,106],[30,110],[31,118],[31.4,121.5]] },
@@ -1010,6 +999,7 @@ const RIVERS = {
   kongo:      { name:'Kongo', marker:[-1,18], wiki:'Kongo (Fluss)', info:'Großer Fluss in Afrika, mitten durch den Regenwald.', path:[[-2,28],[0,25],[-1,18],[-3,16],[-6,12.4]] },
 };
 const MOUNTAINS = {
+  himalaya: { name:'Himalaya', marker:[28.3,85], wiki:'Himalaya', info:'Höchstes Gebirge der Erde – hier steht der Mount Everest (8.849 m), der höchste Berg der Welt.', path:[[35.2,74],[33,76.5],[31,79],[29.5,82],[28.3,85],[27.9,87.5],[27.5,90],[27.8,93],[28.2,95.5]] },
   anden: { name:'Anden', marker:[-20,-68], wiki:'Anden', info:'Längstes Gebirge der Erde, an der Westküste Südamerikas.', path:[[10,-72],[0,-78],[-12,-75],[-23,-67],[-35,-70],[-45,-72],[-52,-73]] },
   alpen: { name:'Alpen', marker:[46.5,10], wiki:'Alpen', info:'Höchstes Gebirge Mitteleuropas; höchster Berg ist der Mont Blanc.', path:[[44,7],[45.5,7.5],[46.5,10],[47,13],[47.3,15]] },
   rocky: { name:'Rocky Mountains', marker:[44,-110], wiki:'Rocky Mountains', info:'Großes Gebirge im Westen Nordamerikas.', path:[[55,-122],[49,-116],[44,-110],[39,-106],[35,-106]] },
@@ -1047,13 +1037,41 @@ const HERITAGE = {   // bekannte UNESCO-Weltkulturerbe / Welterbe
   yellowstone:{ name:'Yellowstone', marker:[44.6,-110.5], wiki:'Yellowstone-Nationalpark', info:'Erster Nationalpark der Welt (USA), mit heißen Geysiren.' },
 };
 
+// Die „neuen 7 Weltwunder“ (2007) – als Punkte
+const NEWWONDERS = {
+  chichen:  { name:'Chichén Itzá', marker:[20.68,-88.57], wiki:'Chichén Itzá', info:'Maya-Pyramide in Mexiko – eines der „neuen 7 Weltwunder“ (2007).' },
+  christo:  { name:'Christusstatue Rio', marker:[-22.95,-43.21], wiki:'Cristo Redentor (Rio de Janeiro)', info:'Große Christusstatue über Rio de Janeiro (Brasilien).' },
+  colosseum:{ name:'Kolosseum', marker:[41.89,12.49], wiki:'Kolosseum', info:'Antikes Amphitheater in Rom (Italien).' },
+  wall:     { name:'Chinesische Mauer', marker:[40.43,116.57], wiki:'Chinesische Mauer', info:'Tausende Kilometer lange Mauer in China.' },
+  machu:    { name:'Machu Picchu', marker:[-13.16,-72.55], wiki:'Machu Picchu', info:'Alte Inkastadt hoch in den Anden (Peru).' },
+  petra:    { name:'Petra', marker:[30.33,35.44], wiki:'Petra (Stadt)', info:'In den Fels gehauene Stadt in Jordanien.' },
+  taj:      { name:'Taj Mahal', marker:[27.17,78.04], wiki:'Taj Mahal', info:'Grabmal aus weißem Marmor in Indien.' },
+};
+// Geografische Rekorde („Guinnessbuch“ der Erde)
+const RECORDS = {
+  everest:   { name:'Höchster Berg: Mount Everest', marker:[27.99,86.93], wiki:'Mount Everest', info:'8.849 m – der höchste Berg der Erde (Himalaya).' },
+  mariana:   { name:'Tiefste Stelle: Marianengraben', marker:[11.35,142.2], wiki:'Marianengraben', info:'Rund 11.000 m tief – die tiefste Stelle aller Ozeane.' },
+  nil:       { name:'Längster Fluss: Nil', marker:[19,32.9], wiki:'Nil', info:'Mit ~6.650 km einer der längsten Flüsse der Erde.' },
+  sahara:    { name:'Größte Wüste: Sahara', marker:[23,13], wiki:'Sahara', info:'Größte Trockenwüste der Erde (Nordafrika).' },
+  caspian:   { name:'Größter See: Kaspisches Meer', marker:[41.5,50.5], wiki:'Kaspisches Meer', info:'Der größte See der Erde – so groß, dass man ihn „Meer“ nennt.' },
+  baikal:    { name:'Tiefster See: Baikalsee', marker:[53.5,108], wiki:'Baikalsee', info:'Tiefster und ältester See der Erde (über 1.600 m), in Russland.' },
+  angel:     { name:'Höchster Wasserfall: Salto Ángel', marker:[5.97,-62.53], wiki:'Salto Ángel', info:'Höchster Wasserfall der Erde (~979 m), in Venezuela.' },
+  vostok:    { name:'Kältester Ort: Wostok', marker:[-78.46,106.84], wiki:'Wostok-Station', info:'Hier wurde mit −89 °C die tiefste Temperatur der Erde gemessen (Antarktis).' },
+  death:     { name:'Heißester Ort: Death Valley', marker:[36.5,-117.0], wiki:'Death Valley', info:'Eine der heißesten Gegenden der Erde (bis ~57 °C), USA.' },
+  greenland: { name:'Größte Insel: Grönland', marker:[72,-40], wiki:'Grönland', info:'Die größte Insel der Erde (Australien zählt als Kontinent).' },
+  andes:     { name:'Längstes Gebirge: Anden', marker:[-30,-70], wiki:'Anden', info:'Mit ~7.000 km das längste Gebirge der Erde (Südamerika).' },
+  russia:    { name:'Größtes Land: Russland', marker:[61,100], wiki:'Russland', info:'Das flächengrößte Land der Erde.' },
+};
+
 const LAYERS = {
-  wonder:   { data: WONDERS,   color: 0xffd24a },
-  heritage: { data: HERITAGE,  color: 0xff8ad0 },
-  river:    { data: RIVERS,    color: 0x46c8ff },
-  mountain: { data: MOUNTAINS, color: 0xff9d3a },
-  desert:   { data: DESERTS,   color: 0xe0b84a },
-  sea:      { data: SEAS,      color: 0x4aa3ff },
+  wonder:    { data: WONDERS,    color: 0xffd24a },
+  newwonder: { data: NEWWONDERS, color: 0xffc14a },
+  heritage:  { data: HERITAGE,   color: 0xff8ad0 },
+  record:    { data: RECORDS,    color: 0xff5b6e },
+  river:     { data: RIVERS,     color: 0x46c8ff },
+  mountain:  { data: MOUNTAINS,  color: 0xff9d3a },
+  desert:    { data: DESERTS,    color: 0xe0b84a },
+  sea:       { data: SEAS,       color: 0x4aa3ff },
 };
 const lineTargets = [];   // unsichtbare „dicke“ Linien für Hover/Klick (Flüsse, Gebirge)
 
@@ -1211,29 +1229,9 @@ function ringMarker(lat, lng, color, rOut) {
   highlightGroup.add(ring); pulseRing = ring;
 }
 
-function showFeature(key) {
-  const f = FEATURES[key]; clearHighlight();
-  if (f.type === 'line') {
-    const pts = geoLine(f.path, R * 1.013);
-    const tube = new THREE.Mesh(
-      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 2, 0.018, 8, false),
-      new THREE.MeshBasicMaterial({ color: f.color, transparent: true, opacity: 0.85 }));
-    highlightGroup.add(tube);
-  } else if (f.type === 'peak') {
-    const pos = geoToVec(f.marker[0], f.marker[1], R * 1.006);
-    ringMarker(f.marker[0], f.marker[1], f.color, 0.1);
-    const up = pos.clone().normalize();
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.55, 8),
-      new THREE.MeshBasicMaterial({ color: f.color, transparent: true, opacity: 0.6 }));
-    beam.position.copy(pos.clone().add(up.clone().multiplyScalar(0.28)));
-    beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
-    highlightGroup.add(beam);
-  }
-  showInfo(f.name, f.color, f.info, f.wiki);
-}
 function showCountry(key) {
   const c = COUNTRIES[key]; clearHighlight();
-  if (c.polys) addCountryShape(highlightGroup, c.polys, 0x8effa6, 0.32, R * 1.005);
+  if (c.polys) highlightGroup.add(countryOutlineGroup(c.polys, 0x8effa6, R * 1.006, 0.0075));
   else if (!outlineByAdmin(c.geo, 0x8effa6)) ringMarker(c.marker[0], c.marker[1], 0x8effa6, 0.12);
   showInfo(c.name, '#8effa6', c.info, c.wiki);
 }
@@ -1275,8 +1273,7 @@ function activate(kind, key) {
   else if (kind === 'city') showCity(key);
   else if (kind === 'river' || kind === 'mountain') showLineSite(kind, key);
   else if (kind === 'desert') showArea(kind, key);
-  else if (kind === 'sea' || kind === 'wonder' || kind === 'heritage') showPointSite(kind, key);
-  else showFeature(key);
+  else showPointSite(kind, key);   // sea, wonder, newwonder, heritage, record
 }
 
 // ---------------------------------------------------------------------------
@@ -1460,7 +1457,7 @@ btnCountries.addEventListener('click', () => {
 });
 
 // Geografie-Ebenen ein/aus
-[['btn-wonders','wonder'],['btn-heritage','heritage'],['btn-rivers','river'],['btn-mountains','mountain'],['btn-deserts','desert'],['btn-seas','sea']].forEach(([id, kind]) => {
+[['btn-wonders','wonder'],['btn-newwonders','newwonder'],['btn-heritage','heritage'],['btn-records','record'],['btn-rivers','river'],['btn-mountains','mountain'],['btn-deserts','desert'],['btn-seas','sea']].forEach(([id, kind]) => {
   const b = document.getElementById(id);
   b.addEventListener('click', () => { layerGroups[kind].visible = !layerGroups[kind].visible; b.classList.toggle('on', layerGroups[kind].visible); });
 });
@@ -1533,16 +1530,6 @@ qNext.addEventListener('click', () => {
 document.getElementById('btn-quiz').addEventListener('click', () => { quizEl.style.display = 'flex'; startQuiz(); });
 document.getElementById('qclose').addEventListener('click', () => { quizEl.style.display = 'none'; });
 quizEl.addEventListener('click', e => { if (e.target === quizEl) quizEl.style.display = 'none'; });
-
-// „Entdecken“-Buttons (Nil, Himalaya, Mount Everest)
-const featuresEl = document.getElementById('features');
-Object.entries(FEATURES).forEach(([key, f]) => {
-  const b = document.createElement('button');
-  b.textContent = f.name;
-  b.style.borderColor = f.color;
-  b.addEventListener('click', () => showFeature(key));
-  featuresEl.appendChild(b);
-});
 
 // ---------------------------------------------------------------------------
 // Mystische Hintergrundmusik (prozedural per Web Audio API, ohne Audiodatei)

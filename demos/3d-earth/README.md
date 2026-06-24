@@ -22,11 +22,14 @@ Dazu (Niveau 5. Klasse Realschule Geografie):
 - **Einzelobjekte** als Punkte: Nil (Flusslauf), Himalaya (Gebirge),
   Mount Everest (Gipfel) – Klick hebt sie hervor und erklärt sie.
 - **Kontinente** mit Umriss + Steckbrief
-- **Städte**: wichtige Großstädte inkl. der wichtigsten Stadt je Land
-  (Berlin, Paris, London, Rom, Moskau, Peking, Kairo, …)
-- **Weitere Ebenen** (ein-/ausblendbar): die **7 Weltwunder der Antike**, **Welterbe** (UNESCO),
-  **Wüsten** und **Meere/Ozeane** (Info & Foto). **Flüsse** werden blau, **Gebirge** braun
-  direkt auf der Karte gezeichnet; fährt man über ein Gebirge, ragt es als 3D-Gipfelkette heraus.
+- **Länder**: echte Außengrenze; beim Mouseover wird sie als dicke Linie
+  nachgezeichnet, Klick zeigt Infos + Foto
+- **Städte**: die jeweils **5 wichtigsten Städte je Land** (100 Städte), als Stadtkreis
+- **Weitere Ebenen** (ein-/ausblendbar): **7 Weltwunder der Antike**, **Neue 7 Weltwunder**,
+  **Welterbe** (UNESCO), geografische **Rekorde** („Guinnessbuch": höchster Berg, tiefste
+  Stelle, längster Fluss …), **Wüsten** und **Meere/Ozeane** (Info & Foto). **Flüsse** werden
+  blau, **Gebirge** braun direkt auf der Karte gezeichnet; beim Mouseover ragt ein Gebirge
+  als 3D-Gipfelkette heraus.
 - Kontinent-Namen erscheinen nur, wenn der Kontinent zur Kamera zeigt
   (verschwinden beim Drehen auf der Rückseite); Ländergrenzen zeigen die Außengrenzen.
 - **Greenwich**: Mouseover erklärt den Nullmeridian
