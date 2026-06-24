@@ -44,3 +44,38 @@ cd demos/3d-earth && python3 -m http.server 8000
   Internet­verbindung wird zusätzlich eine echte Satelliten­textur nachgeladen
 
 > Keine Build-Schritte, keine Abhängigkeiten zum Installieren – nur eine HTML-Datei.
+
+## Live-Entwicklung (Auto-Update vom Branch)
+
+Loop für gemeinsames Arbeiten: Änderungen werden auf den Branch
+`claude/3d-earth-interactive-model-vx3d98` gepusht, dein PC zieht sie
+automatisch, du lädst nur den Browser neu (F5).
+
+**Einmal einrichten** (Repo klonen, Branch auschecken):
+
+```bash
+git clone https://github.com/noerix-admin/hermes-agent-control-room.git
+cd hermes-agent-control-room
+git checkout claude/3d-earth-interactive-model-vx3d98
+```
+
+**Bei jeder Session starten** (auto-pull + lokaler Server in einem):
+
+```bash
+cd demos/3d-earth
+./dev.sh                 # Linux / macOS  → http://localhost:8000
+```
+
+Unter **Windows** (PowerShell) als Einzeiler:
+
+```powershell
+cd demos\3d-earth
+python -m http.server 8000
+# in zweitem Fenster für Auto-Pull:
+while ($true) { git pull --ff-only origin claude/3d-earth-interactive-model-vx3d98; Start-Sleep 20 }
+```
+
+Danach `http://localhost:8000` öffnen. Nach jeder gepushten Änderung genügt **F5**.
+
+> Wichtig: Die Seite muss über `http://localhost` laufen, **nicht** per Doppelklick
+> (`file://`) – Browser blockieren dort die ES-Module (CORS).
