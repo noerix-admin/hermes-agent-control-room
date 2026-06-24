@@ -232,6 +232,7 @@
     <h2 style="font-size:14px; margin-bottom:8px;">Geografie-Ebenen</h2>
     <div class="controls">
       <button id="btn-wonders">🏛️ Weltwunder</button>
+      <button id="btn-heritage">🏯 Welterbe</button>
       <button id="btn-rivers">🏞️ Flüsse</button>
       <button id="btn-mountains">⛰️ Gebirge</button>
       <button id="btn-deserts">🏜️ Wüsten</button>
@@ -464,6 +465,10 @@ function makeEarthTexture() {
 const earthGroup = new THREE.Group();
 scene.add(earthGroup);
 
+// Schwebende Text-Labels (Kontinente, Pole): werden ausgeblendet, sobald sie
+// beim Drehen auf die Rückseite der Erde wandern.
+const billboards = [];
+
 // Erdkugel
 const earth = new THREE.Mesh(
   new THREE.SphereGeometry(R, 64, 64),
@@ -688,6 +693,22 @@ const CITIES = [
     info:'Hauptstadt von Japan und eine der größten Städte der Welt – hier leben viele Millionen Menschen.' },
   { key:'sydney',  name:'Sydney',         lat:-33.9, lng:151.2, wiki:'Sydney',
     info:'Größte Stadt Australiens, weltbekannt für das Opernhaus direkt am Hafen.' },
+  // wichtigste Stadt je Land
+  { key:'berlin',  name:'Berlin',  lat:52.52, lng:13.40, wiki:'Berlin', info:'Hauptstadt Deutschlands und größte Stadt des Landes. Bekannt: das Brandenburger Tor.' },
+  { key:'paris',   name:'Paris',   lat:48.86, lng:2.35,  wiki:'Paris', info:'Hauptstadt Frankreichs. Wahrzeichen ist der Eiffelturm.' },
+  { key:'london',  name:'London',  lat:51.51, lng:-0.13, wiki:'London', info:'Hauptstadt des Vereinigten Königreichs, an der Themse – nahe Greenwich (Nullmeridian).' },
+  { key:'rom',     name:'Rom',     lat:41.90, lng:12.50, wiki:'Rom', info:'Hauptstadt Italiens. Bekannt: das Kolosseum und der Vatikan.' },
+  { key:'madrid',  name:'Madrid',  lat:40.42, lng:-3.70, wiki:'Madrid', info:'Hauptstadt Spaniens, liegt fast genau in der Mitte des Landes.' },
+  { key:'oslo',    name:'Oslo',    lat:59.91, lng:10.75, wiki:'Oslo', info:'Hauptstadt Norwegens, liegt am Ende eines langen Fjords.' },
+  { key:'kairo',   name:'Kairo',   lat:30.04, lng:31.24, wiki:'Kairo', info:'Hauptstadt Ägyptens, liegt am Nil – nahe den Pyramiden von Gizeh.' },
+  { key:'toronto', name:'Toronto', lat:43.65, lng:-79.38, wiki:'Toronto', info:'Größte Stadt Kanadas, am Ontariosee.' },
+  { key:'mexcity', name:'Mexiko-Stadt', lat:19.43, lng:-99.13, wiki:'Mexiko-Stadt', info:'Hauptstadt Mexikos – eine der größten Städte der Welt, hoch in den Bergen.' },
+  { key:'buenos',  name:'Buenos Aires', lat:-34.61, lng:-58.38, wiki:'Buenos Aires', info:'Hauptstadt Argentiniens, am breiten Fluss Río de la Plata.' },
+  { key:'moskau',  name:'Moskau',  lat:55.76, lng:37.62, wiki:'Moskau', info:'Hauptstadt Russlands und größte Stadt Europas. Bekannt: der Rote Platz.' },
+  { key:'peking',  name:'Peking',  lat:39.90, lng:116.41, wiki:'Peking', info:'Hauptstadt Chinas, nahe der Chinesischen Mauer.' },
+  { key:'delhi',   name:'Neu-Delhi', lat:28.61, lng:77.21, wiki:'Neu-Delhi', info:'Hauptstadt Indiens, im Norden des Landes.' },
+  { key:'riad',    name:'Riad',    lat:24.71, lng:46.68, wiki:'Riad', info:'Hauptstadt Saudi-Arabiens, mitten in der Wüste.' },
+  { key:'jakarta', name:'Jakarta', lat:-6.21, lng:106.85, wiki:'Jakarta', info:'Hauptstadt Indonesiens, auf der Insel Java.' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -717,6 +738,7 @@ CONTINENTS.forEach(([name, lat, lng, data, geo, wiki]) => {
   continentGroup.add(label);
   continentTargets.push(label);
   clickTargets.push(label);
+  billboards.push(label);
 });
 
 // kleine, wiederverwendbare Glüh-Textur für Punkte
@@ -779,6 +801,7 @@ function makePole(lat, name, info, color) {
   cap.position.copy(geoToVec(lat, 0, R + 0.5)); polesGroup.add(cap);
   const label = makeLabel(name, color, lat > 0 ? '90° N' : '90° S');
   label.position.copy(geoToVec(lat, 0, R + 0.95)); polesGroup.add(label);
+  billboards.push(label);
   const hit = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8),
     new THREE.MeshBasicMaterial({ visible: false }));
   hit.position.copy(geoToVec(lat, 0, R + 0.45));
@@ -926,7 +949,7 @@ function flattenPoly(poly) {
 }
 function addCountryShape(group, polys, color, fillOpacity, radius) {
   const omat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95 });
-  polys.forEach(poly => poly.forEach(ring => group.add(ringLine(ring, omat, radius + 0.003))));
+  polys.forEach(poly => group.add(ringLine(poly[0], omat, radius + 0.003)));   // nur Außengrenze
   if (fillOpacity > 0 && earcut) {
     polys.forEach(poly => {
       const { verts, holes } = flattenPoly(poly);
@@ -951,15 +974,15 @@ Object.entries(COUNTRIES).forEach(([key, c]) => { importantByGeo[c.geo] = key; }
   catch (e) { return; }
   const cmat = new THREE.LineBasicMaterial({ color: COUNTRY_COLOR, transparent: true, opacity: 0.35 });
   gj.features.forEach(f => {
-    const rings = ringsOf(f.geometry);
-    geoFeatures.push({ admin: f.properties.ADMIN, continent: f.properties.CONTINENT, rings });
+    const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    geoFeatures.push({ admin: f.properties.ADMIN, continent: f.properties.CONTINENT, polys });
     const key = importantByGeo[f.properties.ADMIN];
     if (!key) return;
-    COUNTRIES[key].rings = rings;
-    COUNTRIES[key].polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-    rings.forEach(r => countryGroup.add(ringLine(r, cmat, R * 1.004)));      // schwacher Dauerumriss
+    COUNTRIES[key].rings = ringsOf(f.geometry);    // alle Ringe (genaue Klick-Erkennung)
+    COUNTRIES[key].polys = polys;
+    polys.forEach(p => countryGroup.add(ringLine(p[0], cmat, R * 1.004)));   // nur Außengrenze
     const hi = new THREE.Group(); hi.visible = false;                        // Hover: heller Umriss + Füllung
-    addCountryShape(hi, COUNTRIES[key].polys, 0xffe9a8, 0.3, R * 1.0045);
+    addCountryShape(hi, polys, 0xffe9a8, 0.3, R * 1.0045);
     countryGroup.add(hi);
     COUNTRIES[key].hi = hi;
   });
@@ -1010,8 +1033,22 @@ const SEAS = {
   karibik:   { name:'Karibisches Meer', marker:[15,-75], wiki:'Karibisches Meer', info:'Warmes Meer mit vielen Inseln bei Mittelamerika.' },
 };
 
+const HERITAGE = {   // bekannte UNESCO-Weltkulturerbe / Welterbe
+  giza:       { name:'Pyramiden von Gizeh', marker:[29.98,31.13], wiki:'Pyramiden von Gizeh', info:'Die einzigen erhaltenen antiken Weltwunder – über 4.500 Jahre alt (Ägypten).' },
+  akropolis:  { name:'Akropolis Athen', marker:[37.97,23.73], wiki:'Akropolis (Athen)', info:'Berühmte Tempelanlage aus dem alten Griechenland.' },
+  galapagos:  { name:'Galápagos-Inseln', marker:[-0.8,-91.0], wiki:'Galápagos-Inseln', info:'Inseln mit einzigartigen Tieren; hier forschte Charles Darwin (Ecuador).' },
+  stonehenge: { name:'Stonehenge', marker:[51.18,-1.83], wiki:'Stonehenge', info:'Rätselhafter Steinkreis in England, über 4.000 Jahre alt.' },
+  koelndom:   { name:'Kölner Dom', marker:[50.94,6.96], wiki:'Kölner Dom', info:'Riesige gotische Kirche in Köln (Deutschland).' },
+  venedig:    { name:'Venedig', marker:[45.44,12.34], wiki:'Venedig', info:'Stadt in Italien, die auf dem Wasser gebaut ist – mit Kanälen statt Straßen.' },
+  grandcanyon:{ name:'Grand Canyon', marker:[36.1,-112.1], wiki:'Grand Canyon', info:'Riesige Schlucht in den USA, vom Fluss Colorado gegraben.' },
+  serengeti:  { name:'Serengeti', marker:[-2.33,34.83], wiki:'Serengeti-Nationalpark', info:'Savanne in Afrika mit riesigen Tierherden (Tansania).' },
+  angkor:     { name:'Angkor Wat', marker:[13.41,103.87], wiki:'Angkor Wat', info:'Größte Tempelanlage der Welt, in Kambodscha.' },
+  yellowstone:{ name:'Yellowstone', marker:[44.6,-110.5], wiki:'Yellowstone-Nationalpark', info:'Erster Nationalpark der Welt (USA), mit heißen Geysiren.' },
+};
+
 const LAYERS = {
   wonder:   { data: WONDERS,   color: 0xffd24a },
+  heritage: { data: HERITAGE,  color: 0xff8ad0 },
   river:    { data: RIVERS,    color: 0x46c8ff },
   mountain: { data: MOUNTAINS, color: 0xff9d3a },
   desert:   { data: DESERTS,   color: 0xe0b84a },
@@ -1121,14 +1158,14 @@ function outlineByAdmin(admin, color) {
   const f = geoFeatures.find(g => g.admin === admin);
   if (!f) return false;
   const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95 });
-  f.rings.forEach(r => highlightGroup.add(ringLine(r, mat, R * 1.006)));
+  f.polys.forEach(p => highlightGroup.add(ringLine(p[0], mat, R * 1.006)));
   return true;
 }
 function outlineContinent(geoName, color) {
   const list = geoFeatures.filter(g => g.continent === geoName);
   if (!list.length) return false;
   const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 });
-  list.forEach(f => f.rings.forEach(r => highlightGroup.add(ringLine(r, mat, R * 1.005))));
+  list.forEach(f => f.polys.forEach(p => highlightGroup.add(ringLine(p[0], mat, R * 1.005))));
   return true;
 }
 function ringMarker(lat, lng, color, rOut) {
@@ -1203,7 +1240,7 @@ function activate(kind, key) {
   else if (kind === 'city') showCity(key);
   else if (kind === 'river' || kind === 'mountain') showLineSite(kind, key);
   else if (kind === 'desert') showArea(kind, key);
-  else if (kind === 'sea' || kind === 'wonder') showPointSite(kind, key);
+  else if (kind === 'sea' || kind === 'wonder' || kind === 'heritage') showPointSite(kind, key);
   else showFeature(key);
 }
 
@@ -1388,7 +1425,7 @@ btnCountries.addEventListener('click', () => {
 });
 
 // Geografie-Ebenen ein/aus
-[['btn-wonders','wonder'],['btn-rivers','river'],['btn-mountains','mountain'],['btn-deserts','desert'],['btn-seas','sea']].forEach(([id, kind]) => {
+[['btn-wonders','wonder'],['btn-heritage','heritage'],['btn-rivers','river'],['btn-mountains','mountain'],['btn-deserts','desert'],['btn-seas','sea']].forEach(([id, kind]) => {
   const b = document.getElementById(id);
   b.addEventListener('click', () => { layerGroups[kind].visible = !layerGroups[kind].visible; b.classList.toggle('on', layerGroups[kind].visible); });
 });
@@ -1705,11 +1742,15 @@ renderer.domElement.addEventListener('pointerup', e => {
 // Render-Schleife
 // ---------------------------------------------------------------------------
 let pulseT = 0;
+const _camDir = new THREE.Vector3(), _wp = new THREE.Vector3();
 // setAnimationLoop unterstützt normale Anzeige UND VR (WebXR)
 renderer.setAnimationLoop(() => {
   controls.update();
   if (clouds.visible) clouds.rotation.y += 0.0004;   // Wolken ziehen langsam
   if (pulseRing) { pulseT += 0.08; pulseRing.scale.setScalar(1 + 0.18 * Math.sin(pulseT)); }
+  // Schwebende Namen nur zeigen, wenn ihr Ort zur Kamera zeigt (Vorderseite)
+  _camDir.copy(camera.position).normalize();
+  for (const l of billboards) { l.getWorldPosition(_wp); l.visible = _wp.normalize().dot(_camDir) > 0.12; }
   renderer.render(scene, camera);
 });
 

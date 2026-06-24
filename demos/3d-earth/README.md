@@ -22,8 +22,12 @@ Dazu (Niveau 5. Klasse Realschule Geografie):
 - **Einzelobjekte** als Punkte: Nil (Flusslauf), Himalaya (Gebirge),
   Mount Everest (Gipfel) – Klick hebt sie hervor und erklärt sie.
 - **Kontinente** mit Umriss + Steckbrief
-- **Weitere Ebenen** (ein-/ausblendbar): die **7 Weltwunder**, wichtige **Flüsse**,
-  **Gebirge**, **Wüsten** und **Meere/Ozeane** – je mit Highlight, Info & Foto
+- **Städte**: wichtige Großstädte inkl. der wichtigsten Stadt je Land
+  (Berlin, Paris, London, Rom, Moskau, Peking, Kairo, …)
+- **Weitere Ebenen** (ein-/ausblendbar): die **7 Weltwunder**, **Welterbe** (UNESCO),
+  wichtige **Flüsse**, **Gebirge**, **Wüsten** und **Meere/Ozeane** – je mit Highlight, Info & Foto
+- Kontinent-Namen erscheinen nur, wenn der Kontinent zur Kamera zeigt
+  (verschwinden beim Drehen auf der Rückseite); Ländergrenzen zeigen die Außengrenzen.
 - **Greenwich**: Mouseover erklärt den Nullmeridian
 - **Erdschichten-Querschnitt** („🍰 Erdschichten"): ein Tortenstück wird entfernt
   und man sieht Kruste, Mantel, äußeren und inneren Erdkern mit Kurzdaten
