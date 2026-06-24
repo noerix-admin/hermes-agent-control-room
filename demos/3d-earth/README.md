@@ -24,8 +24,9 @@ Dazu (Niveau 5. Klasse Realschule Geografie):
 - **Kontinente** mit Umriss + Steckbrief
 - **Städte**: wichtige Großstädte inkl. der wichtigsten Stadt je Land
   (Berlin, Paris, London, Rom, Moskau, Peking, Kairo, …)
-- **Weitere Ebenen** (ein-/ausblendbar): die **7 Weltwunder**, **Welterbe** (UNESCO),
-  wichtige **Flüsse**, **Gebirge**, **Wüsten** und **Meere/Ozeane** – je mit Highlight, Info & Foto
+- **Weitere Ebenen** (ein-/ausblendbar): die **7 Weltwunder der Antike**, **Welterbe** (UNESCO),
+  **Wüsten** und **Meere/Ozeane** (Info & Foto). **Flüsse** werden blau, **Gebirge** braun
+  direkt auf der Karte gezeichnet; fährt man über ein Gebirge, ragt es als 3D-Gipfelkette heraus.
 - Kontinent-Namen erscheinen nur, wenn der Kontinent zur Kamera zeigt
   (verschwinden beim Drehen auf der Rückseite); Ländergrenzen zeigen die Außengrenzen.
 - **Greenwich**: Mouseover erklärt den Nullmeridian
