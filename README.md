@@ -109,6 +109,24 @@ Orchestrated path:
   You -> hermes-orchestrator -> Agent Task Bus -> Specialists -> You
 ```
 
+## Central Backlog
+
+The Control Room holds one shared backlog for the whole fleet in
+`backlog/BACKLOG.md`. It is the planning surface that sits upstream of the task
+bus.
+
+```text
+Control Room  = what the fleet should do and what it is   (registry, docs, backlog)
+Task Bus      = work in flight right now                  (inbox, working, outbox)
+Agent memory  = one agent's private runtime state
+```
+
+The backlog lives in the control plane, not inside an agent's memory, so fleet
+planning survives any single agent being rebuilt or reset. Items flow
+`idea -> ready -> dispatched -> done`; a `ready` item becomes a task-bus task
+when it is time to run it. See `docs/backlog.md` for the full flow and
+`templates/backlog/backlog-item.md` for a detailed item.
+
 ## Architecture Levels
 
 ### Level 1: Agent Control Room + One Agent
@@ -188,8 +206,11 @@ agent-control-room/
   README.md
   agents/
     .gitkeep
+  backlog/
+    BACKLOG.md
   docs/
     architecture.md
+    backlog.md
     levels.md
     naming.md
     security.md
@@ -207,6 +228,8 @@ agent-control-room/
       env-map.md
       runbook.md
       backup.md
+    backlog/
+      backlog-item.md
     docker/
       docker-compose.agent.yml
       docker-compose.orchestrator.yml
